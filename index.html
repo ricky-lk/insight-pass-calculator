@@ -1088,17 +1088,15 @@
     }
 
     .copyright {
-    margin-top: 16px;
-    font-size: 12px;
-    color: var(--text-muted);
-    opacity: 0.7;
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--muted);
+      opacity: 0.7;
     }
 
-    .copyright a{
-    margin-top: 16px;
-    font-size: 12px;
-    color: var(--text-muted);
-    opacity: 0.7;
+    .copyright a {
+      color: var(--muted);
+      text-decoration: underline;
     }
 
     .about-link-list {
@@ -1133,10 +1131,8 @@
 
   <!-- 頂部浮動迷你提示 -->
   <div id="toastNotification" class="toast-container">
-    <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16" style="color: #30d158;">
-      <polyline points="20 6 9 17 4 12"></polyline>
-    </svg>
-    <span id="toastMessage">已增加戲飛記錄</span>
+  <span id="toastIconWrap" style="display: flex; align-items: center;"></span>
+  <span id="toastMessage">已增加戲飛記錄</span>
   </div>
 
   <div class="app-container">
@@ -1568,6 +1564,29 @@
 
     <!-- ================= View 5: 關於頁 (About View) ================= -->
     <section id="view-about" class="view">
+      
+      <!-- 版本與更新區塊 (手動檢查更新與版本顯示) -->
+      <div class="card">
+        <div class="card-title">
+          <span>版本與更新</span>
+          <span style="font-size: 0.78rem; font-weight: 700; color: var(--accent);" id="badgeVersionText">v1.0.2</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <div style="flex: 1;">
+            <div style="font-size: 0.92rem; font-weight: 700; color: var(--text);">
+              目前版本：<span id="currentVersionDisplay">v1.0.2</span>
+            </div>
+            <div id="updateStatusText" style="font-size: 0.78rem; color: var(--muted); margin-top: 4px;">
+              開啟 App 時會自動檢查更新
+            </div>
+          </div>
+          <button type="button" id="manualCheckUpdateBtn" class="btn-primary" style="width: auto; padding: 8px 14px; font-size: 0.82rem; white-space: nowrap; flex-shrink: 0;">
+            <svg class="icon icon-stroke" viewBox="0 0 24 24" width="14" height="14"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+            <span>檢查更新</span>
+          </button>
+        </div>
+      </div>
+
       <div class="about-backup-notice">
         <svg class="icon icon-stroke" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
@@ -1628,6 +1647,12 @@
             <strong class="terms-title">2. 個人資料及本機儲存</strong>
             <p class="terms-paragraph">
               本工具設計為直接於瀏覽器內運行。除「聯絡我們」表單外，你輸入的觀影紀錄、電影名稱、日期、積分、Pass 費用、會員費用及其他設定，均只會儲存在你目前使用的裝置及瀏覽器的 LocalStorage 內，不會由本工具上傳至伺服器、雲端資料庫或其他第三方平台。
+            </p>
+            <p class="terms-paragraph">
+              本工具可能使用瀏覽器的快取及 Service Worker 技術，以儲存及更新本工具本身所需的程式資源。這些快取只用於載入及更新本工具，不代表你的觀影紀錄或個人設定會被上傳至伺服器。
+            </p>
+            <p class="terms-paragraph">
+              本工具更新程式版本時，只會更新本工具本身的程式資源，不會因版本更新而主動刪除、重設或清除你儲存在裝置內的觀影紀錄及設定。
             </p>
             <p class="terms-paragraph">
               如你透過「聯絡我們」表單主動提交資料，相關資料會經 Tally 服務平台傳輸及儲存，詳情請參閱該表單所載的私隱聲明及
@@ -1696,9 +1721,7 @@
           資料僅供參考，一切以官方最新公布為準。
         </p>
         <div class="meta-info">
-          <span>資料最後更新：2026/8/15</span>
-          <span class="divider">·</span>
-          <span class="version">v1.0.1</span>
+          <span>票價等資料最後更新月份：2026/8</span>
         </div>
         <div class="copyright">
           Made by <a href="https://ricky-lk.github.io/" target="_blank">Ricky-lk</a>
@@ -1753,7 +1776,7 @@
   </nav>
 
   <script>
-    // 升級 Storage Key 至 v26，確保首次啟動能直接體驗乾淨的 onboarding 流程
+    const APP_VERSION = "v1.0.2";
     const CONFIG = {
       storageKey: "insight_pass_tracker_v26"
     };
@@ -1801,6 +1824,7 @@
     let state = loadState();
     let currentPointMode = "0";
     let toastTimer = null;
+    let isUpdatingApp = false;
 
     const htmlElement = document.documentElement;
     const toastNotification = document.getElementById("toastNotification");
@@ -1879,6 +1903,8 @@
     const detailSeasonMovieList = document.getElementById("detailSeasonMovieList");
 
     const shareAppBtn = document.getElementById("shareAppBtn");
+    const manualCheckUpdateBtn = document.getElementById("manualCheckUpdateBtn");
+    const updateStatusText = document.getElementById("updateStatusText");
 
     const themeSelect = document.getElementById("themeSelect");
     const timeFormatSelect = document.getElementById("timeFormatSelect");
@@ -1913,6 +1939,7 @@
       populateSettingsFormFromState();
       updateAddTicketPricePreview();
       render();
+      initServiceWorkerAndAutoUpdate();
 
       // 嚴格判定首次開啟與強制初次設定流程
       if (!state.hasSeenNotice) {
@@ -1922,15 +1949,199 @@
       }
     }
 
-    function showToast(msg) {
+    /* ================= 語意化版本比對 (SemVer 嚴格比對 server > current) ================= */
+    function isNewerVersion(serverVer, currentVer) {
+      if (!serverVer || !currentVer) return false;
+      const parse = (v) => v.toString().replace(/^[^\d]*/, '').split('.').map(n => parseInt(n, 10) || 0);
+      const s = parse(serverVer);
+      const c = parse(currentVer);
+      
+      const maxLength = Math.max(s.length, c.length);
+      for (let i = 0; i < maxLength; i++) {
+        const sVal = s[i] || 0;
+        const cVal = c[i] || 0;
+        if (sVal > cVal) return true;
+        if (sVal < cVal) return false;
+      }
+      return false;
+    }
+
+    /* ================= PWA 自動更新與手動更新機制 ================= */
+    function initServiceWorkerAndAutoUpdate() {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').then((reg) => {
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  newWorker.postMessage({ type: 'SKIP_WAITING' });
+                }
+              });
+            }
+          });
+        }).catch(err => {
+          console.warn("Service Worker 註冊失敗:", err);
+        });
+
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (!refreshing && isUpdatingApp) {
+            refreshing = true;
+            window.location.reload();
+          }
+        });
+      }
+
+      // App 啟動時自動安靜檢查更新 (若有新版才提示)
+      setTimeout(() => {
+        checkAppVersion(false);
+      }, 1200);
+    }
+
+    async function checkAppVersion(isManual = false) {
+      if (isManual) {
+        if (manualCheckUpdateBtn) manualCheckUpdateBtn.disabled = true;
+        if (updateStatusText) updateStatusText.textContent = "正在檢查更新...";
+        showToast("正在檢查更新...");
+      }
+
+      try {
+        const response = await fetch(`version.json?_t=${Date.now()}`, {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache"
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error("無法連接至更新伺服器");
+        }
+
+        const data = await response.json();
+        const serverVersion = data.version;
+
+        // 嚴格比對：伺服器版本必須大於目前版本才執行更新
+        if (serverVersion && isNewerVersion(serverVersion, APP_VERSION)) {
+          if (updateStatusText) {
+            updateStatusText.textContent = `發現新版本 ${serverVersion}，正在更新...`;
+          }
+          showToast(`發現新版本 ${serverVersion}，正在更新...`);
+
+          if ('serviceWorker' in navigator) {
+            const reg = await navigator.serviceWorker.ready;
+            
+            if (reg.waiting) {
+              isUpdatingApp = true;
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+              return;
+            }
+
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (newWorker) {
+                newWorker.addEventListener('statechange', () => {
+                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    isUpdatingApp = true;
+                    newWorker.postMessage({ type: 'SKIP_WAITING' });
+                  } else if (newWorker.state === 'redundant') {
+                    if (isManual) {
+                      if (updateStatusText) updateStatusText.textContent = "更新安裝失敗，請稍後重試";
+                      showToast("更新安裝失敗，請稍後重試");
+                    }
+                  }
+                });
+              }
+            });
+
+            await reg.update();
+          } else {
+            // 不支援 Service Worker 的環境直接重載
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          }
+
+        } else {
+          if (isManual) {
+            if (updateStatusText) {
+              updateStatusText.textContent = `目前已是最新版本 (${APP_VERSION})`;
+            }
+            showToast(`目前已是最新版本 (${APP_VERSION})`);
+          } else {
+            if (updateStatusText) {
+              updateStatusText.textContent = `目前已是最新版本 (${APP_VERSION})`;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("檢查版本發生錯誤:", err);
+        if (isManual) {
+          if (updateStatusText) {
+            updateStatusText.textContent = "檢查更新失敗，請檢查網絡連線";
+          }
+          showToast("檢查更新失敗，請稍後重試");
+        }
+      } finally {
+        if (isManual && manualCheckUpdateBtn) {
+          setTimeout(() => {
+            manualCheckUpdateBtn.disabled = false;
+          }, 1000);
+        }
+      }
+    }
+
+    /* 頂部輕量 Toast 彈窗函數 (支援 success / error / info 動態圖案) */
+    function showToast(msg, type = 'auto') {
       if (!toastNotification || !toastMessage) return;
+
+      const iconWrap = document.getElementById("toastIconWrap");
+      
+      // 自動根據文字關鍵字判定類型 (亦支援手動傳入 'error' / 'success' / 'info')
+      let resolvedType = type;
+      if (resolvedType === 'auto') {
+        if (msg.includes('失敗') || msg.includes('錯誤') || msg.includes('刪除')) {
+          resolvedType = 'error';
+        } else if (msg.includes('更新中') || msg.includes('正在')) {
+          resolvedType = 'info';
+        } else {
+          resolvedType = 'success';
+        }
+      }
+
+      // 根據類型切換 SVG 圖案及顏色
+      if (iconWrap) {
+        if (resolvedType === 'error') {
+          // ⚠️ 紅色感嘆號
+          iconWrap.innerHTML = `
+            <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16" style="color: var(--danger);">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>`;
+        } else if (resolvedType === 'info') {
+          // 🔄 藍色/灰色更新圖案
+          iconWrap.innerHTML = `
+            <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16" style="color: #0a84ff;">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>`;
+        } else {
+          // ✅ 綠色成功勾號
+          iconWrap.innerHTML = `
+            <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16" style="color: #30d158;">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>`;
+        }
+      }
+
       toastMessage.textContent = msg;
       toastNotification.classList.add("show");
       
       if (toastTimer) clearTimeout(toastTimer);
       toastTimer = setTimeout(() => {
         toastNotification.classList.remove("show");
-      }, 2200);
+      }, 2400);
     }
 
     function loadState() {
@@ -2404,6 +2615,13 @@
         recordsSeasonDetailCard.classList.add("hidden");
         recordsArchiveListCard.classList.remove("hidden");
       });
+
+      // 關於頁手動檢查更新按鈕
+      if (manualCheckUpdateBtn) {
+        manualCheckUpdateBtn.addEventListener("click", () => {
+          checkAppVersion(true);
+        });
+      }
 
       shareAppBtn.addEventListener("click", async () => {
         const shareData = {
@@ -2964,6 +3182,7 @@
       openArchivedSeasonDetail(archivedId);
     }
 
+    // 刪除戲飛：取消時自動收起按鈕
     function deleteTicket(id, btnElement) {
       const confirmed = confirm("確定要刪除這張戲飛紀錄嗎？刪除後數據將重新計算。");
       if (confirmed) {
