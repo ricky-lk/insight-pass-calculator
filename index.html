@@ -11,8 +11,8 @@
   <title>Insight Pass 回本計數機 (非官方程式)</title>
 
   <!-- Favicon -->
-  <link rel="icon" type="image/png" href="logo.png">
-  <link rel="apple-touch-icon" href="logo.png">
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
 
   <!-- PWA -->
   <link rel="manifest" href="manifest.json">
@@ -30,7 +30,7 @@
     :root {
       --bg: #f2f2f7;
       --card-bg: #ffffff;
-      --card-border: #d1d1d6;
+      --card-border: #cecece;
       --text: #000000;
       --muted: #3a3a3c;
       --accent: #DF2D32;
@@ -48,13 +48,15 @@
       --chip-bg: #e5e5ea;
       --chip-text: #000000;
       --chip-hover: #d1d1d6;
+      --toast-bg: rgba(28, 28, 30, 0.88);
+      --toast-text: #ffffff;
     }
 
     @media (prefers-color-scheme: dark) {
       html[data-theme="auto"] {
         --bg: #1c1c1e;
         --card-bg: #2c2c2e;
-        --card-border: #3a3a3c;
+        --card-border: #5d5d5e;
         --text: #ffffff;
         --muted: #f2f2f7;
         --accent: #DF2D32;
@@ -72,6 +74,8 @@
         --chip-bg: #3a3a3c;
         --chip-text: #ffffff;
         --chip-hover: #48484a;
+        --toast-bg: rgba(58, 58, 60, 0.9);
+        --toast-text: #ffffff;
       }
     }
 
@@ -96,6 +100,8 @@
       --chip-bg: #3a3a3c;
       --chip-text: #ffffff;
       --chip-hover: #48484a;
+      --toast-bg: rgba(58, 58, 60, 0.9);
+      --toast-text: #ffffff;
     }
 
     html[data-theme="light"] {
@@ -119,6 +125,8 @@
       --chip-bg: #e5e5ea;
       --chip-text: #000000;
       --chip-hover: #d1d1d6;
+      --toast-bg: rgba(28, 28, 30, 0.88);
+      --toast-text: #ffffff;
     }
 
     * {
@@ -126,6 +134,19 @@
       margin: 0;
       padding: 0;
       -webkit-tap-highlight-color: transparent;
+    }
+
+    /* 隱藏瀏覽器滾動條 (保持可正常滑動) */
+    html, body {
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    html::-webkit-scrollbar,
+    body::-webkit-scrollbar {
+      display: none;
+      width: 0 !important;
+      height: 0 !important;
     }
 
     body {
@@ -141,6 +162,37 @@
       max-width: 480px;
       margin: 0 auto;
       padding: 16px 14px;
+    }
+
+    /* 頂部浮動迷你 Toast 提示 */
+    .toast-container {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translate(-50%, -60px);
+      background: var(--toast-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      color: var(--toast-text);
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      z-index: 9999;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .toast-container.show {
+      transform: translate(-50%, 0);
+      opacity: 1;
     }
 
     .view {
@@ -218,6 +270,7 @@
       padding: 16px;
       margin-bottom: 14px;
       box-shadow: none;
+      overflow: hidden;
     }
 
     .card-title {
@@ -421,6 +474,7 @@
 
     .form-group {
       margin-bottom: 14px;
+      width: 100%;
     }
 
     .form-group label {
@@ -447,10 +501,16 @@
       gap: 6px;
     }
 
+    /* 統一所有輸入框樣式，防止寬度超邊界 */
     input[type="text"],
     input[type="number"],
-    input[type="date"] {
+    input[type="date"],
+    input[type="datetime-local"] {
       width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      display: block;
+      min-width: 0;
       padding: 12px;
       background: var(--input-bg);
       border: 1px solid var(--card-border);
@@ -460,6 +520,8 @@
       font-weight: 500;
       outline: none;
       transition: background-color 0.2s, border-color 0.2s;
+      -webkit-appearance: none;
+      appearance: none;
     }
 
     input[type="text"]:hover,
@@ -468,18 +530,9 @@
       border-color: var(--accent);
     }
 
-    /* 原生 datetime-local 樣式 */
     input[type="datetime-local"] {
-      width: 100%;
-      padding: 12px 14px;
-      background: var(--input-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 10px;
       color: var(--accent);
-      font-size: 0.95rem;
       font-weight: 700;
-      outline: none;
-      transition: border-color 0.2s;
     }
 
     input[type="datetime-local"]:hover {
@@ -488,6 +541,8 @@
 
     select {
       width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
       padding: 12px 36px 12px 12px;
       background: var(--input-bg);
       border: 1px solid var(--card-border);
@@ -756,7 +811,7 @@
       border-color: var(--accent);
     }
 
-    /* iOS 底部導航欄 */
+    /* iOS 底部導航欄：touch-action 改為 none，確保滑動切換時絕不觸發頁面上下滾動 */
     .bottom-nav {
       position: fixed;
       bottom: 16px;
@@ -775,7 +830,7 @@
       justify-content: space-around;
       padding: 0 6px;
       z-index: 99;
-      touch-action: pan-y;
+      touch-action: none;
       user-select: none;
       -webkit-user-select: none;
     }
@@ -978,7 +1033,6 @@
       letter-spacing: 0.01em;
     }
 
-    /* 每個條款大標題 */
     .terms-text .terms-title {
       display: block;
       color: var(--text);
@@ -988,12 +1042,10 @@
       margin: 0 0 12px;
     }
 
-    /* 每一段正文 */
     .terms-text .terms-paragraph {
       margin: 0 0 14px;
     }
 
-    /* 每一個條款之間 */
     .terms-text .terms-section {
       margin-bottom: 30px;
     }
@@ -1002,7 +1054,6 @@
       margin-bottom: 0;
     }
 
-    /* 連結 */
     .terms-text a {
       color: var(--accent);
       text-decoration: underline;
@@ -1036,6 +1087,20 @@
       font-family: monospace;
     }
 
+    .copyright {
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    opacity: 0.7;
+    }
+
+    .copyright a{
+    margin-top: 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    opacity: 0.7;
+    }
+
     .about-link-list {
       display: flex;
       flex-direction: column;
@@ -1066,9 +1131,17 @@
 </head>
 <body>
 
+  <!-- 頂部浮動迷你提示 -->
+  <div id="toastNotification" class="toast-container">
+    <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16" style="color: #30d158;">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>
+    <span id="toastMessage">已增加戲飛記錄</span>
+  </div>
+
   <div class="app-container">
 
-    <!-- 初次開啟提示彈窗 -->
+    <!-- 初次開啟提示彈窗 (包含圖解說明) -->
     <div id="noticeModal" class="modal-overlay hidden">
       <div class="modal-card">
         <h3>
@@ -1261,7 +1334,7 @@
             <input type="text" id="movieName" placeholder="請輸入電影名稱" required />
           </div>
 
-          <!-- 2. 購買日期與時間 (改回原生 datetime-local) -->
+          <!-- 2. 購買日期與時間 -->
           <div class="form-group">
             <label>
               <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg>
@@ -1270,7 +1343,7 @@
             <input type="datetime-local" id="purchaseDateTime" required />
           </div>
 
-          <!-- 3. 觀看日期與時間 (改回原生 datetime-local) -->
+          <!-- 3. 觀看日期與時間 -->
           <div class="form-group" id="watchDateGroup">
             <label>
               <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -1334,6 +1407,7 @@
     <!-- ================= View 4: 設定 (Settings) ================= -->
     <section id="view-settings" class="view">
       
+      <!-- 初次設定引導提示橫幅 -->
       <div id="setupBanner" class="setup-banner hidden">
         <svg class="icon icon-stroke" viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <span>首次使用：請先確認並設定以下資料後開始！</span>
@@ -1453,7 +1527,7 @@
         </div>
       </details>
 
-      <!-- 資料管理及重設 -->
+      <!-- 資料管理及重設 (初次設定時鎖定) -->
       <details class="card" id="seasonDataMgmtDetails">
         <summary>
           <span class="summary-title">
@@ -1494,20 +1568,20 @@
 
     <!-- ================= View 5: 關於頁 (About View) ================= -->
     <section id="view-about" class="view">
-    <div class="about-backup-notice">
-      <svg class="icon icon-stroke" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
-        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71 3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-        <line x1="12" y1="9" x2="12" y2="13"></line>
-        <line x1="12" y1="17" x2="12.01" y2="17"></line>
-      </svg>
-      <span>
-        <strong>備份提醒：</strong>
-        本工具資料只儲存於目前瀏覽器及裝置內，更換瀏覽器或清除 Cookie／網站資料後，資料可能會遺失，建議定期備份。
-        <br><br>
-        <strong>備份方法：</strong>
-        前往「設定」→「資料管理及重設」→「匯出資料 (JSON)」即可下載檔案。需要還原時，於同一頁選擇「匯入資料 (JSON)」並載入備份檔案即可。
-      </span>
-    </div>
+      <div class="about-backup-notice">
+        <svg class="icon icon-stroke" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <span>
+          <strong>備份提醒：</strong>
+          本工具資料只儲存於目前瀏覽器及裝置內，更換瀏覽器或清除 Cookie／網站資料後，資料可能會遺失，建議定期備份。
+          <br><br>
+          <strong>備份方法：</strong>
+          前往「設定」→「資料管理及重設」→「匯出資料 (JSON)」即可下載檔案。需要還原時，於同一頁選擇「匯入資料 (JSON)」並載入備份檔案即可。
+        </span>
+      </div>
 
       <div class="card">
         <div class="card-title">關於本工具</div>
@@ -1515,16 +1589,16 @@
           Insight Pass 回本計數機為個人開發之第三方免費工具，旨在協助 Insight Pass 持有人輕鬆記錄觀影紀錄與估算回本進度。
         </p>
         <div class="about-link-list">
+          <a href="https://ricky-lk.github.io/" target="_blank" class="about-link-item">
+            <span>更多工具</span>
+            <svg class="icon icon-stroke" viewBox="0 0 24 24" width="18" height="18"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </a>
           <button type="button" id="shareAppBtn" class="about-link-item" style="width: 100%; text-align: left;">
             <span>分享 Insight Pass 回本計數機</span>
             <svg class="icon icon-stroke" viewBox="0 0 24 24" width="18" height="18"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           </button>
-          <a href="https://ricky-lk.github.io/" target="_blank" class="about-link-item">
-            <span>GitHub 主頁</span>
-            <svg class="icon icon-stroke" viewBox="0 0 24 24" width="18" height="18"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          </a>
           <a href="https://tally.so/r/rj9Wdp?tool=insight-pass-calculator" target="_blank" class="about-link-item">
-            <span>聯絡我們（意見反映/問題回報/其他查詢）</span>
+            <span>聯絡（意見反映/問題回報/其他查詢）</span>
             <svg class="icon icon-stroke" viewBox="0 0 24 24" width="18" height="18"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
           </a>
         </div>
@@ -1539,75 +1613,58 @@
         <div class="terms-text">
           <div class="terms-section">
             <strong class="terms-title">1. 非官方工具聲明</strong>
-
             <p class="terms-paragraph">
               本工具由個人製作，並使用 AI 輔助開發，主要方便 Insight Pass 持有人記錄觀影紀錄、計算使用情況及估算回本進度。
             </p>
-
             <p class="terms-paragraph">
               本工具屬第三方個人製作，並非百老匯電影中心（bcinephile）的官方網站或官方應用程式，亦與百老匯電影中心、其母公司或任何相關機構沒有任何隸屬、授權、贊助或合作關係。
             </p>
-
             <p class="terms-paragraph">
               本工具純粹供個人測試、娛樂及觀影紀錄參考之用，並不代表百老匯電影中心的官方立場，亦不能取代官方提供的會員、票務或 Insight Pass 資訊。
             </p>
           </div>
 
-
           <div class="terms-section">
             <strong class="terms-title">2. 個人資料及本機儲存</strong>
-
             <p class="terms-paragraph">
               本工具設計為直接於瀏覽器內運行。除「聯絡我們」表單外，你輸入的觀影紀錄、電影名稱、日期、積分、Pass 費用、會員費用及其他設定，均只會儲存在你目前使用的裝置及瀏覽器的 LocalStorage 內，不會由本工具上傳至伺服器、雲端資料庫或其他第三方平台。
             </p>
-
             <p class="terms-paragraph">
               如你透過「聯絡我們」表單主動提交資料，相關資料會經 Tally 服務平台傳輸及儲存，詳情請參閱該表單所載的私隱聲明及
               <a href="https://tally.so/help/terms-and-privacy" target="_blank" rel="noopener noreferrer">Tally 私隱政策</a>。
             </p>
-
             <p class="terms-paragraph">
               為保障個人資料安全，無論使用本工具或提交聯絡表單，均請避免輸入任何敏感或重要資料，例如密碼、信用卡資料、銀行資料或其他個人財務資料。
             </p>
-
             <p class="terms-paragraph">
               由於工具內的紀錄只儲存在你的裝置內，如你清除瀏覽器資料或網站資料、使用無痕／私密瀏覽模式，或更換裝置及瀏覽器，原有紀錄可能會遺失。如有重要紀錄，請自行備份。
             </p>
           </div>
 
-
           <div class="terms-section">
             <strong class="terms-title">3. 計算結果只供參考</strong>
-
             <p class="terms-paragraph">
               本工具內的「回本進度」、「回收金額」、「需要觀看多少張戲飛」、「每日已領取數量」及積分統計等內容，均會根據你輸入的資料及本工具的設定進行計算。
             </p>
-
             <p class="terms-paragraph">
               以上結果只供估算及紀錄參考之用。實際票價、會員優惠、Insight Pass 使用資格、可領取戲票數量及其他票務安排，均可能因官方政策、電影、場次或其他情況而有所不同。
             </p>
-
             <p class="terms-paragraph">
               因此，計算結果不應視為保證，亦不代表實際可以取得相同數量或相同價值的戲票。
             </p>
           </div>
 
-
           <div class="terms-section">
             <strong class="terms-title">4. 官方資訊優先</strong>
-
             <p class="terms-paragraph">
               Insight Pass 的有效日期、會員資格、票務安排、每日取票限制、每場限額、積分換票、特備電影限制及其他使用規則，均以百老匯電影中心官方最新公布的資訊及條款為準。
             </p>
-
             <p class="terms-paragraph">
               如本工具的計算方式、顯示內容或任何資料與官方最新規定有出入，請以官方資料為準。
             </p>
-
             <p class="terms-paragraph">
               完整的 Insight Pass 2026–2027 條款及細則，可參閱以下官方文件：
             </p>
-
             <p class="terms-paragraph">
               <a href="https://drive.google.com/file/d/156eTnF-XjUi2THtD5Kd708tFr2v6FEet/view" target="_blank" rel="noopener noreferrer">
                 查看 Insight Pass 2026–2027 官方條款及細則
@@ -1615,27 +1672,22 @@
             </p>
           </div>
 
-
           <div class="terms-section">
             <strong class="terms-title">5. 使用本工具的責任</strong>
-
             <p class="terms-paragraph">
               使用本工具即代表你明白，本工具只協助你整理個人紀錄及作簡單估算，並不能保證資料永遠準確、完整，或與官方系統即時同步。
             </p>
-
             <p class="terms-paragraph">
               如因使用本工具的計算結果、紀錄或其他資訊而作出任何購票、會員或其他決定，相關決定及後果由使用者自行承擔。
             </p>
-
             <p class="terms-paragraph">
               開發者不會對因使用、依賴或無法使用本工具而產生的任何直接或間接損失負責。
             </p>
-
             <p class="terms-paragraph">
               如對 Insight Pass 的實際使用資格或票務安排有疑問，建議直接向百老匯電影中心查詢。
             </p>
           </div>
-      </div>
+        </div>
       </details>
 
       <div class="footer-note">
@@ -1646,7 +1698,10 @@
         <div class="meta-info">
           <span>資料最後更新：2026/8/15</span>
           <span class="divider">·</span>
-          <span class="version">v1.0.0</span>
+          <span class="version">v1.0.1</span>
+        </div>
+        <div class="copyright">
+          Made by <a href="https://ricky-lk.github.io/" target="_blank">Ricky-lk</a>
         </div>
       </div>
     </section>
@@ -1698,8 +1753,9 @@
   </nav>
 
   <script>
+    // 升級 Storage Key 至 v26，確保首次啟動能直接體驗乾淨的 onboarding 流程
     const CONFIG = {
-      storageKey: "insight_pass_tracker_v25"
+      storageKey: "insight_pass_tracker_v26"
     };
 
     const HK_PUBLIC_HOLIDAYS = new Set([
@@ -1744,8 +1800,12 @@
 
     let state = loadState();
     let currentPointMode = "0";
+    let toastTimer = null;
 
     const htmlElement = document.documentElement;
+    const toastNotification = document.getElementById("toastNotification");
+    const toastMessage = document.getElementById("toastMessage");
+
     const noticeModal = document.getElementById("noticeModal");
     const closeModalBtn = document.getElementById("closeModalBtn");
     const setupBanner = document.getElementById("setupBanner");
@@ -1854,11 +1914,23 @@
       updateAddTicketPricePreview();
       render();
 
+      // 嚴格判定首次開啟與強制初次設定流程
       if (!state.hasSeenNotice) {
         noticeModal.classList.remove("hidden");
       } else if (!state.hasCompletedSetup) {
         enterMandatorySetup();
       }
+    }
+
+    function showToast(msg) {
+      if (!toastNotification || !toastMessage) return;
+      toastMessage.textContent = msg;
+      toastNotification.classList.add("show");
+      
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toastNotification.classList.remove("show");
+      }, 2200);
     }
 
     function loadState() {
@@ -1879,6 +1951,7 @@
       htmlElement.setAttribute("data-theme", theme);
     }
 
+    // 強制進入初次設定模式 (鎖定導向欄與資料重設區)
     function enterMandatorySetup() {
       setupBanner.classList.remove("hidden");
       bottomNav.classList.add("disabled");
@@ -2083,6 +2156,11 @@
     function switchView(targetViewId) {
       const activeView = document.querySelector(".view.active");
       
+      // 如果處於初次未完成設定狀態，強制禁止切換至其他分頁
+      if (!state.hasCompletedSetup && targetViewId !== "view-settings") {
+        return false;
+      }
+
       if (activeView && activeView.id === "view-settings" && targetViewId !== "view-settings") {
         if (hasSettingsChanged()) {
           const leave = confirm("⚠️ 你所作的設定尚未儲存，確定要離開嗎？\n\n點擊「確定」將捨棄未儲存的變更。\n點擊「取消」保留在設定頁面進行儲存。");
@@ -2285,6 +2363,7 @@
     }
 
     function bindEvents() {
+      // 點擊首次提示彈窗按鈕 -> 關閉彈窗並切換至強制設定頁面
       closeModalBtn.addEventListener("click", () => {
         state.hasSeenNotice = true;
         saveState();
@@ -2295,7 +2374,6 @@
         }
       });
 
-      // 點擊卡片外部空白處自動收起所有刪除按鈕
       document.addEventListener('pointerdown', (e) => {
         if (!e.target.closest('.swipe-item')) {
           closeAllSwipes();
@@ -2437,8 +2515,10 @@
         updateAddTicketPricePreview();
         render();
         switchView("view-home");
+        showToast("已增加戲飛記錄");
       });
 
+      // 儲存設定按鈕 (支援初次設定完成解鎖)
       saveSettingsBtn.addEventListener("click", () => {
         state.theme = themeSelect.value;
         state.timeFormat = timeFormatSelect.value;
@@ -2466,10 +2546,10 @@
           bottomNav.classList.remove("disabled");
           seasonDataMgmtCard.classList.remove("disabled-card");
           saveSettingsBtn.textContent = "儲存設定";
-          alert("初始化設定已完成，歡迎使用！");
+          showToast("初始化設定已完成！");
           switchView("view-home");
         } else {
-          alert("設定已儲存！");
+          showToast("設定已成功儲存");
         }
       });
 
@@ -2500,7 +2580,7 @@
         state.movies = [];
         saveState();
         render();
-        alert("舊年度已成功封存！現在請設定新一年度的到期日與費用。");
+        showToast("舊年度已成功封存！");
       });
 
       exportDataBtn.addEventListener("click", () => {
@@ -2512,6 +2592,7 @@
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
         downloadAnchor.remove();
+        showToast("資料已成功匯出");
       });
 
       importDataBtn.addEventListener("click", () => importFileInput.click());
@@ -2537,7 +2618,7 @@
             populateSettingsFormFromState();
             updateAddTicketPricePreview();
             render();
-            alert("資料已安全驗證並成功匯入！");
+            showToast("備份資料已成功匯入！");
           } catch (err) {
             alert(`⚠️ 匯入失敗：${err.message || "檔案損壞或格式不相符"}`);
           }
@@ -2556,7 +2637,7 @@
             render();
             noticeModal.classList.remove("hidden");
             enterMandatorySetup();
-            alert("系統所有紀錄已徹底重設！");
+            showToast("系統所有紀錄已重設");
           }
         }
       });
@@ -2883,13 +2964,13 @@
       openArchivedSeasonDetail(archivedId);
     }
 
-    // 刪除戲飛：取消時自動收起按鈕
     function deleteTicket(id, btnElement) {
       const confirmed = confirm("確定要刪除這張戲飛紀錄嗎？刪除後數據將重新計算。");
       if (confirmed) {
         state.movies = state.movies.filter(m => m.id !== id);
         saveState();
         render();
+        showToast("已刪除該戲飛紀錄");
       } else {
         closeAllSwipes();
       }
