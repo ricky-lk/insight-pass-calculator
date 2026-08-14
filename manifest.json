@@ -1,0 +1,24 @@
+{
+  "name": "Insight Pass 回本計數機 (非官方程式)",
+  "short_name": "Insight Pass",
+  "description": "(非官方程式)Insight Pass 回本計數機為個人開發之第三方免費工具，旨在協助 Insight Pass 持有人輕鬆記錄觀影紀錄與估算回本進度。",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#F5F5F7",
+  "theme_color": "#DF2D32",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
