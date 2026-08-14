@@ -136,7 +136,6 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* 隱藏瀏覽器滾動條 (保持可正常滑動) */
     html, body {
       scrollbar-width: none;
       -ms-overflow-style: none;
@@ -164,7 +163,6 @@
       padding: 16px 14px;
     }
 
-    /* 頂部浮動迷你 Toast 提示 */
     .toast-container {
       position: fixed;
       top: 14px;
@@ -220,7 +218,6 @@
       letter-spacing: -0.3px;
     }
 
-    /* 統一標準 SVG 樣式 */
     .icon {
       display: inline-block;
       width: 1.1em;
@@ -501,7 +498,6 @@
       gap: 6px;
     }
 
-    /* 統一所有輸入框樣式，防止寬度超邊界 */
     input[type="text"],
     input[type="number"],
     input[type="date"],
@@ -715,6 +711,7 @@
       gap: 10px;
     }
 
+    /* 雙向滑動卡片 Container */
     .swipe-item {
       position: relative;
       overflow: hidden;
@@ -742,16 +739,50 @@
     .swipe-actions {
       position: absolute;
       top: 0;
-      right: 0;
       bottom: 0;
       width: 80px;
       z-index: 1;
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+
+    /* 左側動作區 (向右拉露出)：編輯 */
+    .swipe-actions-left {
+      left: 0;
+      background: #007aff;
+      border-top-left-radius: 12px;
+      border-bottom-left-radius: 12px;
+    }
+
+    /* 右側動作區 (向左拉露出)：刪除 */
+    .swipe-actions-right {
+      right: 0;
       background: var(--danger);
       border-top-right-radius: 12px;
       border-bottom-right-radius: 12px;
+    }
+
+    .btn-swipe-edit {
+      width: 100%;
+      height: 100%;
+      background: #325b87;
+      color: #ffffff;
+      border: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      cursor: pointer;
+      outline: none;
+      transition: background-color 0.2s;
+    }
+
+    .btn-swipe-edit:active {
+      background-color: #3c6ea2;
     }
 
     .btn-swipe-del {
@@ -811,7 +842,6 @@
       border-color: var(--accent);
     }
 
-    /* iOS 底部導航欄：touch-action 改為 none，確保滑動切換時絕不觸發頁面上下滾動 */
     .bottom-nav {
       position: fixed;
       bottom: 16px;
@@ -926,7 +956,6 @@
       transform: scale(0.92);
     }
 
-    /* Modal 樣式 */
     .modal-overlay {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -947,6 +976,8 @@
       max-width: 400px;
       width: 100%;
       box-shadow: none;
+      max-height: 90vh;
+      overflow-y: auto;
     }
 
     .modal-card h3 {
@@ -1131,13 +1162,13 @@
 
   <!-- 頂部浮動迷你提示 -->
   <div id="toastNotification" class="toast-container">
-  <span id="toastIconWrap" style="display: flex; align-items: center;"></span>
-  <span id="toastMessage">已增加戲飛記錄</span>
+    <span id="toastIconWrap" style="display: flex; align-items: center;"></span>
+    <span id="toastMessage">已增加戲飛記錄</span>
   </div>
 
   <div class="app-container">
 
-    <!-- 初次開啟提示彈窗 (包含圖解說明) -->
+    <!-- 初次開啟提示彈窗 -->
     <div id="noticeModal" class="modal-overlay hidden">
       <div class="modal-card">
         <h3>
@@ -1179,6 +1210,81 @@
         </div>
 
         <button id="closeModalBtn" class="btn-primary" type="button">進入初始化設定</button>
+      </div>
+    </div>
+
+    <!-- 編輯戲飛紀錄 Modal (向右滑動觸發) -->
+    <div id="editTicketModal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <h3>
+          <svg class="icon icon-stroke" viewBox="0 0 24 24" width="20" height="20">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+          編輯戲飛紀錄
+        </h3>
+
+        <form id="editTicketForm">
+          <input type="hidden" id="editTicketId" />
+
+          <!-- 電影名稱 -->
+          <div class="form-group" id="editMovieNameGroup">
+            <label>電影名稱</label>
+            <input type="text" id="editMovieName" placeholder="請輸入電影名稱" />
+          </div>
+
+          <!-- 購買日期與時間 -->
+          <div class="form-group">
+            <label>購買日期與時間</label>
+            <input type="datetime-local" id="editPurchaseDateTime" required />
+          </div>
+
+          <!-- 觀看日期與時間 -->
+          <div class="form-group" id="editWatchDateGroup">
+            <label>觀看日期與時間</label>
+            <input type="datetime-local" id="editWatchDateTime" />
+          </div>
+
+          <!-- 使用積分 -->
+          <div class="form-group">
+            <label>使用積分</label>
+            <div class="chip-group">
+              <button type="button" class="chip-btn" id="editChip0">0 分</button>
+              <button type="button" class="chip-btn" id="editChip30">30 分</button>
+              <button type="button" class="chip-btn" id="editChipCustom">其他</button>
+            </div>
+            <div id="editCustomPointsWrap" style="display: none; margin-top: 6px;">
+              <input type="number" id="editCustomPointsInput" placeholder="請輸入積分數量" min="0" value="0" />
+            </div>
+          </div>
+
+          <!-- 戲飛票價計算 -->
+          <div class="form-group">
+            <label>戲飛票價</label>
+            <select id="editTicketPriceTypeSelect">
+              <option value="auto" id="editAutoPriceOption">⚡ 自動判斷票價</option>
+              <option value="95">成人正價 ($95.00)</option>
+              <option value="60">早場優惠 ($60.00)</option>
+              <option value="75_tue">星期二特惠 ($75.00)</option>
+              <option value="75_stu">學生正價 ($75.00)</option>
+              <option value="custom">自訂金額</option>
+            </select>
+
+            <div id="editAutoPriceHint" class="field-hint" style="color: var(--accent); font-weight: 600;">
+              <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span id="editAutoPriceHintText">系統建議：--</span>
+            </div>
+
+            <div id="editItemCustomPriceWrap" style="display: none; margin-top: 6px;">
+              <input type="number" id="editItemCustomPriceInput" placeholder="請輸入該張戲飛金額 ($)" min="0" step="1" />
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 16px;">
+            <button type="button" id="cancelEditBtn" class="btn-secondary" style="margin-top: 0; flex: 1;">取消</button>
+            <button type="submit" class="btn-primary" style="flex: 1.4;">儲存修改</button>
+          </div>
+        </form>
       </div>
     </div>
 
@@ -1226,7 +1332,6 @@
           <div id="progressFill" class="progress-fill"></div>
         </div>
 
-        <!-- 附屬數據：置中 -->
         <div class="dash-grid" style="margin-top: 14px; margin-bottom: 0;">
           <div class="dash-box">
             <span class="dash-label">今日已領 (每日上限3張)</span>
@@ -1239,7 +1344,6 @@
         </div>
       </div>
 
-      <!-- 快捷按鈕 -->
       <button type="button" class="btn-cta-add" id="homeCtaAddBtn">
         <svg class="icon icon-stroke" viewBox="0 0 24 24" width="18" height="18"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         <span>新增戲飛紀錄</span>
@@ -1270,14 +1374,11 @@
 
     <!-- ================= View 2: 紀錄頁 (Records View) ================= -->
     <section id="view-records" class="view">
-      
-      <!-- 頂部 Segmented Control -->
       <div class="segmented-control">
         <button type="button" class="segment-btn active" id="recordsTabCurrentBtn">本年度觀影明細</button>
         <button type="button" class="segment-btn" id="recordsTabArchiveBtn">過往年度封存紀錄</button>
       </div>
 
-      <!-- 子頁面 A: 本年度觀影明細 (完整) -->
       <div id="recordsCurrentSubView">
         <div class="card">
           <div class="card-title">
@@ -1288,14 +1389,12 @@
         </div>
       </div>
 
-      <!-- 子頁面 B: 過往年度封存紀錄 (列表) -->
       <div id="recordsArchiveSubView" class="hidden">
         <div class="card" id="recordsArchiveListCard">
           <div class="card-title">過往年度封存紀錄</div>
           <div id="recordsArchiveFullList" style="display: flex; flex-direction: column; gap: 10px;"></div>
         </div>
 
-        <!-- 單一過往年度詳細檢視區塊 -->
         <div class="card hidden" id="recordsSeasonDetailCard">
           <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
             <button type="button" id="backToArchiveListBtn" class="btn-del" style="border-color: var(--card-border); color: var(--text);">
@@ -1307,7 +1406,6 @@
           <ul id="detailSeasonMovieList" class="ticket-list"></ul>
         </div>
       </div>
-
     </section>
 
     <!-- ================= View 3: 增加戲飛 (Add Ticket) ================= -->
@@ -1321,7 +1419,6 @@
         </div>
 
         <form id="ticketForm">
-          <!-- 1. 電影名稱 -->
           <div class="form-group" id="movieNameGroup">
             <label id="movieNameLabel">
               <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
@@ -1330,7 +1427,6 @@
             <input type="text" id="movieName" placeholder="請輸入電影名稱" required />
           </div>
 
-          <!-- 2. 購買日期與時間 -->
           <div class="form-group">
             <label>
               <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg>
@@ -1339,7 +1435,6 @@
             <input type="datetime-local" id="purchaseDateTime" required />
           </div>
 
-          <!-- 3. 觀看日期與時間 -->
           <div class="form-group" id="watchDateGroup">
             <label>
               <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -1348,7 +1443,6 @@
             <input type="datetime-local" id="watchDateTime" />
           </div>
 
-          <!-- 4. 使用積分選項 -->
           <div class="form-group">
             <label>
               <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
@@ -1364,7 +1458,6 @@
             </div>
           </div>
 
-          <!-- 5. 戲飛票價計算 -->
           <div class="form-group">
             <label>
               <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
@@ -1379,13 +1472,11 @@
               <option value="custom">自訂金額</option>
             </select>
 
-            <!-- 智慧判斷結果提示 -->
             <div id="autoPriceHint" class="field-hint" style="color: var(--accent); font-weight: 600;">
               <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
               <span id="autoPriceHintText">系統建議：--</span>
             </div>
 
-            <!-- 自訂金額輸入區 -->
             <div id="itemCustomPriceWrap" style="display: none; margin-top: 6px;">
               <input type="number" id="itemCustomPriceInput" placeholder="請輸入該張戲飛金額 ($)" min="0" step="1" />
               <div id="customDiscountHint" class="field-hint" style="margin-top: 4px; display: none;">
@@ -1402,14 +1493,11 @@
 
     <!-- ================= View 4: 設定 (Settings) ================= -->
     <section id="view-settings" class="view">
-      
-      <!-- 初次設定引導提示橫幅 -->
       <div id="setupBanner" class="setup-banner hidden">
         <svg class="icon icon-stroke" viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
         <span>首次使用：請先確認並設定以下資料後開始！</span>
       </div>
 
-      <!-- 系統與成本設定 -->
       <details class="card" id="settingsDetailsCard" open>
         <summary>
           <span>系統與成本設定</span>
@@ -1426,7 +1514,6 @@
             </select>
           </div>
 
-          <!-- 時間顯示格式設定 (12小時 / 24小時) + 備註說明 -->
           <div class="form-group">
             <label>時間顯示格式</label>
             <select id="timeFormatSelect">
@@ -1523,7 +1610,6 @@
         </div>
       </details>
 
-      <!-- 資料管理及重設 (初次設定時鎖定) -->
       <details class="card" id="seasonDataMgmtDetails">
         <summary>
           <span class="summary-title">
@@ -1534,7 +1620,6 @@
             </svg>
             資料管理及重設
           </span>
-
           <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16">
             <polyline points="6 9 12 15 18 9"/>
           </svg>
@@ -1564,17 +1649,15 @@
 
     <!-- ================= View 5: 關於頁 (About View) ================= -->
     <section id="view-about" class="view">
-      
-      <!-- 版本與更新區塊 (手動檢查更新與版本顯示) -->
       <div class="card">
         <div class="card-title">
           <span>版本與更新</span>
-          <span style="font-size: 0.78rem; font-weight: 700; color: var(--accent);" id="badgeVersionText">v1.0.2</span>
+          <span style="font-size: 0.78rem; font-weight: 700; color: var(--accent);" id="badgeVersionText">v1.0.3</span>
         </div>
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
           <div style="flex: 1;">
             <div style="font-size: 0.92rem; font-weight: 700; color: var(--text);">
-              目前版本：<span id="currentVersionDisplay">v1.0.2</span>
+              目前版本：<span id="currentVersionDisplay">v1.0.3</span>
             </div>
             <div id="updateStatusText" style="font-size: 0.78rem; color: var(--muted); margin-top: 4px;">
               開啟 App 時會自動檢查更新
@@ -1649,12 +1732,6 @@
               本工具設計為直接於瀏覽器內運行。除「聯絡我們」表單外，你輸入的觀影紀錄、電影名稱、日期、積分、Pass 費用、會員費用及其他設定，均只會儲存在你目前使用的裝置及瀏覽器的 LocalStorage 內，不會由本工具上傳至伺服器、雲端資料庫或其他第三方平台。
             </p>
             <p class="terms-paragraph">
-              本工具可能使用瀏覽器的快取及 Service Worker 技術，以儲存及更新本工具本身所需的程式資源。這些快取只用於載入及更新本工具，不代表你的觀影紀錄或個人設定會被上傳至伺服器。
-            </p>
-            <p class="terms-paragraph">
-              本工具更新程式版本時，只會更新本工具本身的程式資源，不會因版本更新而主動刪除、重設或清除你儲存在裝置內的觀影紀錄及設定。
-            </p>
-            <p class="terms-paragraph">
               如你透過「聯絡我們」表單主動提交資料，相關資料會經 Tally 服務平台傳輸及儲存，詳情請參閱該表單所載的私隱聲明及
               <a href="https://tally.so/help/terms-and-privacy" target="_blank" rel="noopener noreferrer">Tally 私隱政策</a>。
             </p>
@@ -1721,7 +1798,9 @@
           資料僅供參考，一切以官方最新公布為準。
         </p>
         <div class="meta-info">
-          <span>票價等資料最後更新月份：2026/8</span>
+          <span>資料最後更新：2026/8/16</span>
+          <span class="divider">·</span>
+          <span class="version">v1.0.3</span>
         </div>
         <div class="copyright">
           Made by <a href="https://ricky-lk.github.io/" target="_blank">Ricky-lk</a>
@@ -1776,7 +1855,7 @@
   </nav>
 
   <script>
-    const APP_VERSION = "v1.0.2";
+    const APP_VERSION = "v1.0.3";
     const CONFIG = {
       storageKey: "insight_pass_tracker_v26"
     };
@@ -1823,6 +1902,7 @@
 
     let state = loadState();
     let currentPointMode = "0";
+    let editPointMode = "0";
     let toastTimer = null;
     let isUpdatingApp = false;
 
@@ -1839,6 +1919,27 @@
     const settingsDetailsCard = document.getElementById("settingsDetailsCard");
     const seasonDataMgmtDetails = document.getElementById("seasonDataMgmtDetails");
     const aboutTermsDetails = document.getElementById("aboutTermsDetails");
+
+    const editTicketModal = document.getElementById("editTicketModal");
+    const editTicketForm = document.getElementById("editTicketForm");
+    const editTicketId = document.getElementById("editTicketId");
+    const editMovieName = document.getElementById("editMovieName");
+    const editMovieNameGroup = document.getElementById("editMovieNameGroup");
+    const editPurchaseDateTime = document.getElementById("editPurchaseDateTime");
+    const editWatchDateTime = document.getElementById("editWatchDateTime");
+    const editWatchDateGroup = document.getElementById("editWatchDateGroup");
+    const editChip0 = document.getElementById("editChip0");
+    const editChip30 = document.getElementById("editChip30");
+    const editChipCustom = document.getElementById("editChipCustom");
+    const editCustomPointsWrap = document.getElementById("editCustomPointsWrap");
+    const editCustomPointsInput = document.getElementById("editCustomPointsInput");
+    const editTicketPriceTypeSelect = document.getElementById("editTicketPriceTypeSelect");
+    const editAutoPriceOption = document.getElementById("editAutoPriceOption");
+    const editAutoPriceHint = document.getElementById("editAutoPriceHint");
+    const editAutoPriceHintText = document.getElementById("editAutoPriceHintText");
+    const editItemCustomPriceWrap = document.getElementById("editItemCustomPriceWrap");
+    const editItemCustomPriceInput = document.getElementById("editItemCustomPriceInput");
+    const cancelEditBtn = document.getElementById("cancelEditBtn");
 
     const memberDateText = document.getElementById("memberDateText");
     const memberDaysText = document.getElementById("memberDaysText");
@@ -1941,7 +2042,6 @@
       render();
       initServiceWorkerAndAutoUpdate();
 
-      // 嚴格判定首次開啟與強制初次設定流程
       if (!state.hasSeenNotice) {
         noticeModal.classList.remove("hidden");
       } else if (!state.hasCompletedSetup) {
@@ -1949,7 +2049,6 @@
       }
     }
 
-    /* ================= 語意化版本比對 (SemVer 嚴格比對 server > current) ================= */
     function isNewerVersion(serverVer, currentVer) {
       if (!serverVer || !currentVer) return false;
       const parse = (v) => v.toString().replace(/^[^\d]*/, '').split('.').map(n => parseInt(n, 10) || 0);
@@ -1966,7 +2065,6 @@
       return false;
     }
 
-    /* ================= PWA 自動更新與手動更新機制 ================= */
     function initServiceWorkerAndAutoUpdate() {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('sw.js').then((reg) => {
@@ -1993,7 +2091,6 @@
         });
       }
 
-      // App 啟動時自動安靜檢查更新 (若有新版才提示)
       setTimeout(() => {
         checkAppVersion(false);
       }, 1200);
@@ -2003,7 +2100,7 @@
       if (isManual) {
         if (manualCheckUpdateBtn) manualCheckUpdateBtn.disabled = true;
         if (updateStatusText) updateStatusText.textContent = "正在檢查更新...";
-        showToast("正在檢查更新...");
+        showToast("正在檢查更新...", "info");
       }
 
       try {
@@ -2022,12 +2119,11 @@
         const data = await response.json();
         const serverVersion = data.version;
 
-        // 嚴格比對：伺服器版本必須大於目前版本才執行更新
         if (serverVersion && isNewerVersion(serverVersion, APP_VERSION)) {
           if (updateStatusText) {
             updateStatusText.textContent = `發現新版本 ${serverVersion}，正在更新...`;
           }
-          showToast(`發現新版本 ${serverVersion}，正在更新...`);
+          showToast(`發現新版本 ${serverVersion}，正在更新...`, "info");
 
           if ('serviceWorker' in navigator) {
             const reg = await navigator.serviceWorker.ready;
@@ -2048,7 +2144,7 @@
                   } else if (newWorker.state === 'redundant') {
                     if (isManual) {
                       if (updateStatusText) updateStatusText.textContent = "更新安裝失敗，請稍後重試";
-                      showToast("更新安裝失敗，請稍後重試");
+                      showToast("更新安裝失敗，請稍後重試", "error");
                     }
                   }
                 });
@@ -2057,7 +2153,6 @@
 
             await reg.update();
           } else {
-            // 不支援 Service Worker 的環境直接重載
             setTimeout(() => {
               window.location.reload();
             }, 1000);
@@ -2068,7 +2163,7 @@
             if (updateStatusText) {
               updateStatusText.textContent = `目前已是最新版本 (${APP_VERSION})`;
             }
-            showToast(`目前已是最新版本 (${APP_VERSION})`);
+            showToast(`目前已是最新版本 (${APP_VERSION})`, "success");
           } else {
             if (updateStatusText) {
               updateStatusText.textContent = `目前已是最新版本 (${APP_VERSION})`;
@@ -2081,7 +2176,7 @@
           if (updateStatusText) {
             updateStatusText.textContent = "檢查更新失敗，請檢查網絡連線";
           }
-          showToast("檢查更新失敗，請稍後重試");
+          showToast("檢查更新失敗，請稍後重試", "error");
         }
       } finally {
         if (isManual && manualCheckUpdateBtn) {
@@ -2092,13 +2187,10 @@
       }
     }
 
-    /* 頂部輕量 Toast 彈窗函數 (支援 success / error / info 動態圖案) */
     function showToast(msg, type = 'auto') {
       if (!toastNotification || !toastMessage) return;
 
       const iconWrap = document.getElementById("toastIconWrap");
-      
-      // 自動根據文字關鍵字判定類型 (亦支援手動傳入 'error' / 'success' / 'info')
       let resolvedType = type;
       if (resolvedType === 'auto') {
         if (msg.includes('失敗') || msg.includes('錯誤') || msg.includes('刪除')) {
@@ -2110,10 +2202,8 @@
         }
       }
 
-      // 根據類型切換 SVG 圖案及顏色
       if (iconWrap) {
         if (resolvedType === 'error') {
-          // ⚠️ 紅色感嘆號
           iconWrap.innerHTML = `
             <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16" style="color: var(--danger);">
               <circle cx="12" cy="12" r="10"></circle>
@@ -2121,13 +2211,11 @@
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>`;
         } else if (resolvedType === 'info') {
-          // 🔄 藍色/灰色更新圖案
           iconWrap.innerHTML = `
             <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16" style="color: #0a84ff;">
               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
             </svg>`;
         } else {
-          // ✅ 綠色成功勾號
           iconWrap.innerHTML = `
             <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16" style="color: #30d158;">
               <polyline points="20 6 9 17 4 12"></polyline>
@@ -2162,7 +2250,6 @@
       htmlElement.setAttribute("data-theme", theme);
     }
 
-    // 強制進入初次設定模式 (鎖定導向欄與資料重設區)
     function enterMandatorySetup() {
       setupBanner.classList.remove("hidden");
       bottomNav.classList.add("disabled");
@@ -2329,6 +2416,71 @@
       }
     }
 
+    /* 編輯視窗票價預覽 */
+    function updateEditTicketPricePreview() {
+      const targetDateTime = (state.enableWatchDate && editWatchDateTime.value) ? editWatchDateTime.value : editPurchaseDateTime.value;
+      const autoInfo = determineTicketPrice(targetDateTime);
+
+      editAutoPriceOption.textContent = `⚡ 系統判定：${autoInfo.label}`;
+      editAutoPriceHintText.textContent = `系統判定：${autoInfo.label} [${autoInfo.description}]`;
+
+      const mode = editTicketPriceTypeSelect.value;
+      if (mode === "auto") {
+        editAutoPriceHint.style.display = "flex";
+        editItemCustomPriceWrap.style.display = "none";
+      } else if (mode === "custom") {
+        editAutoPriceHint.style.display = "none";
+        editItemCustomPriceWrap.style.display = "block";
+      } else {
+        editAutoPriceHint.style.display = "none";
+        editItemCustomPriceWrap.style.display = "none";
+      }
+    }
+
+    function setEditPointMode(mode) {
+      editPointMode = mode;
+      editChip0.classList.toggle("active", mode === "0");
+      editChip30.classList.toggle("active", mode === "30");
+      editChipCustom.classList.toggle("active", mode === "custom");
+      editCustomPointsWrap.style.display = mode === "custom" ? "block" : "none";
+    }
+
+    /* 打開編輯視窗並自動載入原有數據 */
+    function openEditTicketModal(id) {
+      closeAllSwipes();
+      const ticket = state.movies.find(m => m.id === id);
+      if (!ticket) return;
+
+      editTicketId.value = ticket.id;
+      editMovieName.value = ticket.name || "";
+      editMovieName.required = state.enableMovieName;
+      editMovieNameGroup.style.display = state.enableMovieName ? "block" : "none";
+
+      editPurchaseDateTime.value = ticket.purchaseTime || "";
+      editWatchDateTime.value = ticket.watchTime || "";
+      editWatchDateGroup.style.display = state.enableWatchDate ? "block" : "none";
+
+      const pts = ticket.points || 0;
+      if (pts === 0) {
+        setEditPointMode("0");
+      } else if (pts === 30) {
+        setEditPointMode("30");
+      } else {
+        setEditPointMode("custom");
+        editCustomPointsInput.value = pts;
+      }
+
+      editTicketPriceTypeSelect.value = "auto";
+      editItemCustomPriceInput.value = "";
+      updateEditTicketPricePreview();
+
+      editTicketModal.classList.remove("hidden");
+    }
+
+    function closeEditTicketModal() {
+      editTicketModal.classList.add("hidden");
+    }
+
     function hasSettingsChanged() {
       if (themeSelect.value !== state.theme) return true;
       if (timeFormatSelect.value !== (state.timeFormat || "24h")) return true;
@@ -2367,7 +2519,6 @@
     function switchView(targetViewId) {
       const activeView = document.querySelector(".view.active");
       
-      // 如果處於初次未完成設定狀態，強制禁止切換至其他分頁
       if (!state.hasCompletedSetup && targetViewId !== "view-settings") {
         return false;
       }
@@ -2574,7 +2725,6 @@
     }
 
     function bindEvents() {
-      // 點擊首次提示彈窗按鈕 -> 關閉彈窗並切換至強制設定頁面
       closeModalBtn.addEventListener("click", () => {
         state.hasSeenNotice = true;
         saveState();
@@ -2616,7 +2766,6 @@
         recordsArchiveListCard.classList.remove("hidden");
       });
 
-      // 關於頁手動檢查更新按鈕
       if (manualCheckUpdateBtn) {
         manualCheckUpdateBtn.addEventListener("click", () => {
           checkAppVersion(true);
@@ -2648,6 +2797,16 @@
       chip30.addEventListener("click", () => setPointMode("30"));
       chipCustom.addEventListener("click", () => setPointMode("custom"));
 
+      editChip0.addEventListener("click", () => setEditPointMode("0"));
+      editChip30.addEventListener("click", () => setEditPointMode("30"));
+      editChipCustom.addEventListener("click", () => setEditPointMode("custom"));
+
+      cancelEditBtn.addEventListener("click", closeEditTicketModal);
+
+      editTicketPriceTypeSelect.addEventListener("change", updateEditTicketPricePreview);
+      editPurchaseDateTime.addEventListener("input", updateEditTicketPricePreview);
+      editWatchDateTime.addEventListener("input", updateEditTicketPricePreview);
+
       themeSelect.addEventListener("change", () => {
         applyTheme(themeSelect.value);
       });
@@ -2669,6 +2828,7 @@
       watchDateTime.addEventListener("input", updateAddTicketPricePreview);
       itemCustomPriceInput.addEventListener("input", updateCustomDiscountPreview);
 
+      /* 新增戲飛表單提交 */
       ticketForm.addEventListener("submit", (e) => {
         e.preventDefault();
 
@@ -2733,10 +2893,62 @@
         updateAddTicketPricePreview();
         render();
         switchView("view-home");
-        showToast("已增加戲飛記錄");
+        showToast("已增加戲飛記錄", "success");
       });
 
-      // 儲存設定按鈕 (支援初次設定完成解鎖)
+      /* 編輯戲飛表單提交 */
+      editTicketForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const id = editTicketId.value;
+        const index = state.movies.findIndex(m => m.id === id);
+        if (index === -1) return;
+
+        let nameVal = editMovieName.value.trim();
+        if (state.enableMovieName && !nameVal) {
+          alert("請填寫電影名稱！");
+          return;
+        }
+
+        let pointsVal = 0;
+        if (editPointMode === "0") pointsVal = 0;
+        else if (editPointMode === "30") pointsVal = 30;
+        else pointsVal = parseInt(editCustomPointsInput.value, 10) || 0;
+
+        const targetDateTime = (state.enableWatchDate && editWatchDateTime.value) ? editWatchDateTime.value : editPurchaseDateTime.value;
+        const autoResult = determineTicketPrice(targetDateTime);
+
+        let finalTicketPrice = autoResult.price;
+        const selectMode = editTicketPriceTypeSelect.value;
+
+        if (selectMode === "auto") {
+          finalTicketPrice = autoResult.price;
+        } else if (selectMode === "custom") {
+          const rawCustom = parseFloat(editItemCustomPriceInput.value) || getTicketUnitPrice();
+          finalTicketPrice = state.enableMemberDiscount ? (rawCustom * 0.8) : rawCustom;
+        } else if (selectMode === "60") {
+          finalTicketPrice = 60;
+        } else if (selectMode === "75_tue" || selectMode === "75_stu") {
+          finalTicketPrice = 75;
+        } else if (selectMode === "95") {
+          finalTicketPrice = state.enableMemberDiscount ? 76 : 95;
+        }
+
+        state.movies[index] = {
+          ...state.movies[index],
+          name: nameVal,
+          price: finalTicketPrice,
+          purchaseTime: editPurchaseDateTime.value,
+          watchTime: state.enableWatchDate ? editWatchDateTime.value : null,
+          points: pointsVal
+        };
+
+        saveState();
+        closeEditTicketModal();
+        render();
+        showToast("已成功修改戲飛資料", "success");
+      });
+
+      /* 儲存設定按鈕 */
       saveSettingsBtn.addEventListener("click", () => {
         state.theme = themeSelect.value;
         state.timeFormat = timeFormatSelect.value;
@@ -2764,10 +2976,10 @@
           bottomNav.classList.remove("disabled");
           seasonDataMgmtCard.classList.remove("disabled-card");
           saveSettingsBtn.textContent = "儲存設定";
-          showToast("初始化設定已完成！");
+          showToast("初始化設定已完成！", "success");
           switchView("view-home");
         } else {
-          showToast("設定已成功儲存");
+          showToast("設定已成功儲存", "success");
         }
       });
 
@@ -2798,7 +3010,7 @@
         state.movies = [];
         saveState();
         render();
-        showToast("舊年度已成功封存！");
+        showToast("舊年度已成功封存！", "success");
       });
 
       exportDataBtn.addEventListener("click", () => {
@@ -2810,7 +3022,7 @@
         document.body.appendChild(downloadAnchor);
         downloadAnchor.click();
         downloadAnchor.remove();
-        showToast("資料已成功匯出");
+        showToast("資料已成功匯出", "success");
       });
 
       importDataBtn.addEventListener("click", () => importFileInput.click());
@@ -2836,7 +3048,7 @@
             populateSettingsFormFromState();
             updateAddTicketPricePreview();
             render();
-            showToast("備份資料已成功匯入！");
+            showToast("備份資料已成功匯入！", "success");
           } catch (err) {
             alert(`⚠️ 匯入失敗：${err.message || "檔案損壞或格式不相符"}`);
           }
@@ -2855,7 +3067,7 @@
             render();
             noticeModal.classList.remove("hidden");
             enterMandatorySetup();
-            showToast("系統所有紀錄已重設");
+            showToast("系統所有紀錄已重設", "info");
           }
         }
       });
@@ -2989,11 +3201,9 @@
         dailyLimitWarning.classList.add("hidden");
       }
 
-      // 渲染本年度明細
       homeCurrentCountText.textContent = `共 ${count} 張`;
       renderTicketList(homeTicketList, state.movies.slice(0, 5));
 
-      // 渲染過往封存
       const archCount = state.archivedSeasons ? state.archivedSeasons.length : 0;
       if (archCount > 0) {
         renderArchiveList(homeArchivedList, state.archivedSeasons.slice(0, 5));
@@ -3011,6 +3221,7 @@
       }
     }
 
+    /* 渲染支援向右滑動編輯 + 向左滑動刪除的雙向列表 */
     function renderTicketList(targetEl, moviesArray) {
       targetEl.innerHTML = "";
       if (!moviesArray || moviesArray.length === 0) {
@@ -3034,15 +3245,32 @@
         const titleDisplay = item.name ? escapeHtml(item.name) : "未命名";
 
         li.innerHTML = `
+          <!-- 左邊滑出：編輯 (向右拉時露出) -->
+          <div class="swipe-actions swipe-actions-left">
+            <button type="button" class="btn-swipe-edit" onclick="openEditTicketModal('${item.id}')">
+              <svg class="icon icon-stroke" viewBox="0 0 24 24" width="18" height="18">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+              </svg>
+              <span>編輯</span>
+            </button>
+          </div>
+
+          <!-- 卡片中間主內容 -->
           <div class="swipe-content">
             <div class="ticket-meta">
               <span class="ticket-title">${titleDisplay}${priceTag}</span>
               <span class="ticket-dates">${dateInfo.join(" | ")}${ptsText}</span>
             </div>
           </div>
-          <div class="swipe-actions">
+
+          <!-- 右邊滑出：刪除 (向左拉時露出) -->
+          <div class="swipe-actions swipe-actions-right">
             <button type="button" class="btn-swipe-del" onclick="deleteTicket('${item.id}', this)">
-              <svg class="icon icon-stroke" viewBox="0 0 24 24" width="18" height="18"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <svg class="icon icon-stroke" viewBox="0 0 24 24" width="18" height="18">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              </svg>
               <span>刪除</span>
             </button>
           </div>
@@ -3053,6 +3281,7 @@
       bindSwipeGesture(targetEl);
     }
 
+    /* 支援左拉刪除與右拉編輯的手勢引擎 */
     function bindSwipeGesture(container) {
       container.querySelectorAll('.swipe-item').forEach(item => {
         const content = item.querySelector('.swipe-content');
@@ -3098,8 +3327,9 @@
 
           if (isHorizontal) {
             let moveX = currentTransformX + deltaX;
-            if (moveX > 0) moveX = 0;
+            // 限制左右拉動範圍在 -95px 至 +95px
             if (moveX < -maxSwipe - 15) moveX = -maxSwipe - 15;
+            if (moveX > maxSwipe + 15) moveX = maxSwipe + 15;
             content.style.transform = `translateX(${moveX}px)`;
           }
         }, { passive: true });
@@ -3112,12 +3342,18 @@
           const finalX = matrix.m41;
 
           if (finalX < -maxSwipe / 2) {
+            // 向左拉開刪除
             content.style.transform = `translateX(-${maxSwipe}px)`;
+          } else if (finalX > maxSwipe / 2) {
+            // 向右拉開編輯
+            content.style.transform = `translateX(${maxSwipe}px)`;
           } else {
+            // 回彈關閉
             content.style.transform = 'translateX(0px)';
           }
         });
 
+        /* 電腦端滑鼠拖拽支援 */
         content.addEventListener('mousedown', (e) => {
           closeOtherSwipes();
           startX = e.clientX;
@@ -3130,8 +3366,8 @@
             if (!isDragging) return;
             const deltaX = moveEvent.clientX - startX;
             let moveX = currentTransformX + deltaX;
-            if (moveX > 0) moveX = 0;
             if (moveX < -maxSwipe - 15) moveX = -maxSwipe - 15;
+            if (moveX > maxSwipe + 15) moveX = maxSwipe + 15;
             content.style.transform = `translateX(${moveX}px)`;
           }
 
@@ -3143,6 +3379,8 @@
 
             if (finalX < -maxSwipe / 2) {
               content.style.transform = `translateX(-${maxSwipe}px)`;
+            } else if (finalX > maxSwipe / 2) {
+              content.style.transform = `translateX(${maxSwipe}px)`;
             } else {
               content.style.transform = 'translateX(0px)';
             }
@@ -3182,14 +3420,13 @@
       openArchivedSeasonDetail(archivedId);
     }
 
-    // 刪除戲飛：取消時自動收起按鈕
     function deleteTicket(id, btnElement) {
       const confirmed = confirm("確定要刪除這張戲飛紀錄嗎？刪除後數據將重新計算。");
       if (confirmed) {
         state.movies = state.movies.filter(m => m.id !== id);
         saveState();
         render();
-        showToast("已刪除該戲飛紀錄");
+        showToast("已刪除該戲飛紀錄", "error");
       } else {
         closeAllSwipes();
       }
