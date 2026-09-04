@@ -2,7 +2,7 @@
 
 專為百老匯電影中心 **Insight Pass** 會員設計嘅免費觀影紀錄與回本進度計算工具。
 
-👉 **即刻使用**：[https://ricky-lk.github.io/insight-pass-calculator](https://ricky-lk.github.io/insight-pass-calculator)
+👉 **即刻用**：[https://ricky-lk.github.io/insight-pass-calculator](https://ricky-lk.github.io/insight-pass-calculator)
 
 ---
 
