@@ -1,11 +1,12 @@
-// sw.js - Insight Pass Service Worker v1.0.3
-const APP_VERSION = '1.0.3';
+const APP_VERSION = '1.0.4a';
 const CACHE_PREFIX = 'insight-pass-';
 const CACHE_NAME = `${CACHE_PREFIX}v${APP_VERSION}`;
 
 const STATIC_ASSETS = [
   './',
   './index.html',
+  './styles.css',
+  './app.js',
   './manifest.json',
   './icon.png'
 ];
