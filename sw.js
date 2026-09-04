@@ -1,4 +1,4 @@
-const APP_VERSION = '1.0.4a';
+const APP_VERSION = '1.0.5';
 const CACHE_PREFIX = 'insight-pass-';
 const CACHE_NAME = `${CACHE_PREFIX}v${APP_VERSION}`;
 

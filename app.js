@@ -1,4 +1,4 @@
-    const APP_VERSION = "v1.0.4a";
+    const APP_VERSION = "v1.0.5";
     const CONFIG = {
       storageKey: "insight_pass_tracker_v26"
     };
