@@ -1,4 +1,4 @@
-    const APP_VERSION = "v1.0.6";
+    const APP_VERSION = "v1.0.7";
     const CONFIG = {
       storageKey: "insight_pass_tracker_v26"
     };
@@ -51,6 +51,8 @@
     let isUpdatingApp = false;
     let isFirstUseImport = false;
     let recordSortOrder = "newest";
+    let appServiceWorkerRegistration = null;
+    let pendingUpdateVersion = "";
 
     const htmlElement = document.documentElement;
     const toastNotification = document.getElementById("toastNotification");
@@ -168,6 +170,17 @@
     const shareAppBtn = document.getElementById("shareAppBtn");
     const manualCheckUpdateBtn = document.getElementById("manualCheckUpdateBtn");
     const updateStatusText = document.getElementById("updateStatusText");
+    const updateModal = document.getElementById("updateModal");
+    const updateModalMessage = document.getElementById("updateModalMessage");
+    const updateProgressPanel = document.getElementById("updateProgressPanel");
+    const updateProgressBar = document.getElementById("updateProgressBar");
+    const updateProgressLabel = document.getElementById("updateProgressLabel");
+    const settingsUpdateProgress = document.getElementById("settingsUpdateProgress");
+    const settingsUpdateProgressBar = document.getElementById("settingsUpdateProgressBar");
+    const updateNowBtn = document.getElementById("updateNowBtn");
+    const updateLaterBtn = document.getElementById("updateLaterBtn");
+    const updateReloadBtn = document.getElementById("updateReloadBtn");
+    const manualCheckUpdateText = document.getElementById("manualCheckUpdateText");
 
     const themeSelect = document.getElementById("themeSelect");
     const timeFormatSelect = document.getElementById("timeFormatSelect");
@@ -230,123 +243,141 @@
 
     function initServiceWorkerAndAutoUpdate() {
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js').then((reg) => {
-          reg.addEventListener('updatefound', () => {
-            const newWorker = reg.installing;
-            if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  newWorker.postMessage({ type: 'SKIP_WAITING' });
-                }
-              });
-            }
-          });
-        }).catch(err => {
-          console.warn("Service Worker 註冊失敗:", err);
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data?.type === 'APP_UPDATE_PROGRESS') renderUpdateProgress(event.data);
         });
-
-        let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (!refreshing && isUpdatingApp) {
-            refreshing = true;
-            window.location.reload();
-          }
+          if (!isUpdatingApp) return;
+          setUpdateStatus('更新完成，正在重新載入…');
+          if (updateModalMessage) updateModalMessage.textContent = '更新已完成，正在載入新版本…';
+          window.location.reload();
         });
+        navigator.serviceWorker.register('sw.js').then(async (reg) => {
+          appServiceWorkerRegistration = reg;
+          if (reg.waiting && navigator.serviceWorker.controller) {
+            pendingUpdateVersion = '新版本';
+            setUpdateStatus('新版本已下載，按「更新」即可套用');
+          }
+        }).catch(err => console.warn('Service Worker 註冊失敗:', err));
       }
+      setTimeout(() => checkAppVersion(false), 1200);
+    }
 
-      setTimeout(() => {
-        checkAppVersion(false);
-      }, 1200);
+    function setUpdateStatus(message) {
+      if (updateStatusText) updateStatusText.textContent = message;
+    }
+
+    function showUpdatePrompt(version) {
+      pendingUpdateVersion = version;
+      if (updateModalMessage) updateModalMessage.textContent = `發現 ${version}。要立即下載並更新嗎？下載期間請保持 App 開啟。`;
+      updateProgressPanel?.classList.add('hidden');
+      updateNowBtn?.classList.remove('hidden');
+      updateLaterBtn?.classList.remove('hidden');
+      updateReloadBtn?.classList.add('hidden');
+      updateModal?.classList.remove('hidden');
+      setUpdateStatus(`發現新版本 ${version}，等待更新`);
+    }
+
+    function renderUpdateProgress(data) {
+      const percent = Math.max(0, Math.min(100, Number(data.percent) || 0));
+      const detail = data.phase === 'activating' ? '正在套用更新…' : `正在下載更新：${data.current || 0}/${data.total || 0} 個檔案（${percent}%）`;
+      updateProgressPanel?.classList.remove('hidden');
+      if (updateProgressBar) updateProgressBar.style.width = `${percent}%`;
+      if (settingsUpdateProgressBar) settingsUpdateProgressBar.style.width = `${percent}%`;
+      updateProgressPanel?.querySelector('[role="progressbar"]')?.setAttribute('aria-valuenow', String(percent));
+      settingsUpdateProgress?.setAttribute('aria-valuenow', String(percent));
+      if (updateProgressLabel) updateProgressLabel.textContent = detail;
+      settingsUpdateProgress?.classList.remove('hidden');
+      setUpdateStatus(detail);
+      if (data.phase === 'downloaded') {
+        if (updateModalMessage) updateModalMessage.textContent = '下載完成，正在啟用新版本…';
+      }
+    }
+
+    async function startAppUpdate() {
+      updateNowBtn?.classList.add('hidden');
+      updateLaterBtn?.classList.add('hidden');
+      updateProgressPanel?.classList.remove('hidden');
+      if (updateProgressLabel) updateProgressLabel.textContent = '正在準備下載更新…';
+      setUpdateStatus('正在準備更新…請保持 App 開啟');
+      if (manualCheckUpdateText) manualCheckUpdateText.textContent = '更新中…';
+      try {
+        const reg = appServiceWorkerRegistration || await navigator.serviceWorker.ready;
+        appServiceWorkerRegistration = reg;
+        if (reg.waiting) {
+          isUpdatingApp = true;
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          showReloadFallback();
+          return;
+        }
+        if (!reg.installing) await reg.update();
+        const worker = reg.installing;
+        if (!worker) throw new Error('找不到正在下載的更新');
+        await new Promise((resolve, reject) => {
+          const onState = () => {
+            if (worker.state === 'installed') {
+              worker.removeEventListener('statechange', onState);
+              if (reg.waiting) {
+                isUpdatingApp = true;
+                reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                showReloadFallback();
+              }
+              resolve();
+            } else if (worker.state === 'redundant') {
+              worker.removeEventListener('statechange', onState);
+              reject(new Error('更新下載失敗'));
+            }
+          };
+          worker.addEventListener('statechange', onState);
+          onState();
+        });
+      } catch (err) {
+        console.warn('更新失敗:', err);
+        isUpdatingApp = false;
+        setUpdateStatus('更新失敗，請檢查網絡後重試');
+        if (updateModalMessage) updateModalMessage.textContent = '更新未能完成，請檢查網絡連線後再試。';
+        if (updateNowBtn) { updateNowBtn.textContent = '重試更新'; updateNowBtn.classList.remove('hidden'); }
+        if (updateLaterBtn) updateLaterBtn.classList.remove('hidden');
+        if (manualCheckUpdateText) manualCheckUpdateText.textContent = '檢查更新';
+      }
+    }
+
+    function showReloadFallback() {
+      window.setTimeout(() => {
+        if (!isUpdatingApp || !updateModal) return;
+        if (updateModalMessage) updateModalMessage.textContent = '更新已完成。如畫面沒有自動更新，請按「重新載入」；仍未更新時，請完整關閉 App 後重新開啟。';
+        updateProgressPanel?.classList.add('hidden');
+        updateNowBtn?.classList.add('hidden');
+        updateLaterBtn?.classList.add('hidden');
+        updateReloadBtn?.classList.remove('hidden');
+        updateModal.classList.remove('hidden');
+        setUpdateStatus('更新已完成；如未自動更新，請重新載入或關閉後重開 App');
+      }, 8000);
     }
 
     async function checkAppVersion(isManual = false) {
       if (isManual) {
         if (manualCheckUpdateBtn) manualCheckUpdateBtn.disabled = true;
-        if (updateStatusText) updateStatusText.textContent = "正在檢查更新...";
-        showToast("正在檢查更新...", "info");
+        setUpdateStatus('正在檢查更新…');
       }
-
       try {
-        const response = await fetch(`version.json?_t=${Date.now()}`, {
-          cache: "no-store",
-          headers: {
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "Pragma": "no-cache"
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error("無法連接至更新伺服器");
-        }
-
+        const response = await fetch(`version.json?_t=${Date.now()}`, { cache: 'no-store' });
+        if (!response.ok) throw new Error('無法連接至更新伺服器');
         const data = await response.json();
         const serverVersion = data.version;
-
         if (serverVersion && isNewerVersion(serverVersion, APP_VERSION)) {
-          if (updateStatusText) {
-            updateStatusText.textContent = `發現新版本 ${serverVersion}，正在更新...`;
-          }
-          showToast(`發現新版本 ${serverVersion}，正在更新...`, "info");
-
-          if ('serviceWorker' in navigator) {
-            const reg = await navigator.serviceWorker.ready;
-            
-            if (reg.waiting) {
-              isUpdatingApp = true;
-              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-              return;
-            }
-
-            reg.addEventListener('updatefound', () => {
-              const newWorker = reg.installing;
-              if (newWorker) {
-                newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                    isUpdatingApp = true;
-                    newWorker.postMessage({ type: 'SKIP_WAITING' });
-                  } else if (newWorker.state === 'redundant') {
-                    if (isManual) {
-                      if (updateStatusText) updateStatusText.textContent = "更新安裝失敗，請稍後重試";
-                      showToast("更新安裝失敗，請稍後重試", "error");
-                    }
-                  }
-                });
-              }
-            });
-
-            await reg.update();
-          } else {
-            setTimeout(() => {
-              window.location.reload();
-            }, 1000);
-          }
-
+          pendingUpdateVersion = serverVersion;
+          showUpdatePrompt(serverVersion);
+          if (appServiceWorkerRegistration) await appServiceWorkerRegistration.update();
         } else {
-          if (isManual) {
-            if (updateStatusText) {
-              updateStatusText.textContent = `目前已是最新版本 (${APP_VERSION})`;
-            }
-            showToast(`目前已是最新版本 (${APP_VERSION})`, "success");
-          } else {
-            if (updateStatusText) {
-              updateStatusText.textContent = `目前已是最新版本 (${APP_VERSION})`;
-            }
-          }
+          setUpdateStatus(`目前已是最新版本 (${APP_VERSION})`);
+          if (isManual) showToast(`目前已是最新版本 (${APP_VERSION})`, 'success');
         }
       } catch (err) {
-        console.warn("檢查版本發生錯誤:", err);
-        if (isManual) {
-          if (updateStatusText) {
-            updateStatusText.textContent = "檢查更新失敗，請檢查網絡連線";
-          }
-          showToast("檢查更新失敗，請稍後重試", "error");
-        }
+        console.warn('檢查版本發生錯誤:', err);
+        if (isManual) { setUpdateStatus('檢查更新失敗，請檢查網絡連線'); showToast('檢查更新失敗，請稍後重試', 'error'); }
       } finally {
-        if (isManual && manualCheckUpdateBtn) {
-          setTimeout(() => {
-            manualCheckUpdateBtn.disabled = false;
-          }, 1000);
-        }
+        if (isManual && manualCheckUpdateBtn) manualCheckUpdateBtn.disabled = false;
       }
     }
 
@@ -1010,9 +1041,13 @@
 
       if (manualCheckUpdateBtn) {
         manualCheckUpdateBtn.addEventListener("click", () => {
-          checkAppVersion(true);
+          if (pendingUpdateVersion) showUpdatePrompt(pendingUpdateVersion);
+          else checkAppVersion(true);
         });
       }
+      updateNowBtn?.addEventListener('click', startAppUpdate);
+      updateLaterBtn?.addEventListener('click', () => updateModal?.classList.add('hidden'));
+      updateReloadBtn?.addEventListener('click', () => window.location.reload());
 
       shareAppBtn.addEventListener("click", async () => {
         const shareData = {
