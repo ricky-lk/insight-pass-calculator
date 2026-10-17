@@ -1,4 +1,4 @@
-    const APP_VERSION = "v1.0.5";
+    const APP_VERSION = "v1.0.6";
     const CONFIG = {
       storageKey: "insight_pass_tracker_v26"
     };
@@ -29,11 +29,12 @@
         passCategory: "2300",
         customPassPrice: 2000,
         memberFeeCategory: "100",
-        ticketBaseType: "95",
+        ticketBaseType: "adult",
         customTicketPrice: 100,
         enableMemberDiscount: false,
         enableMovieName: true,
         enableWatchDate: true,
+        enableTimeInput: true,
         memberExpiry: "2027-04-30",
         passExpiry: "2027-04-30",
         movies: [],
@@ -48,6 +49,7 @@
     let editPointMode = "0";
     let toastTimer = null;
     let isUpdatingApp = false;
+    let isFirstUseImport = false;
     let recordSortOrder = "newest";
 
     const htmlElement = document.documentElement;
@@ -56,6 +58,7 @@
 
     const noticeModal = document.getElementById("noticeModal");
     const closeModalBtn = document.getElementById("closeModalBtn");
+    const firstUseImportBtn = document.getElementById("firstUseImportBtn");
     const setupBanner = document.getElementById("setupBanner");
     const bottomNav = document.getElementById("bottomNav");
     const navIndicator = document.getElementById("navIndicator");
@@ -70,7 +73,11 @@
     const editMovieName = document.getElementById("editMovieName");
     const editMovieNameGroup = document.getElementById("editMovieNameGroup");
     const editPurchaseDateTime = document.getElementById("editPurchaseDateTime");
+    const editPurchaseTime = document.getElementById("editPurchaseTime");
     const editWatchDateTime = document.getElementById("editWatchDateTime");
+    const editWatchTime = document.getElementById("editWatchTime");
+    const editPurchaseTimeWrap = document.getElementById("editPurchaseTimeWrap");
+    const editWatchTimeWrap = document.getElementById("editWatchTimeWrap");
     const editWatchDateGroup = document.getElementById("editWatchDateGroup");
     const editChip0 = document.getElementById("editChip0");
     const editChip30 = document.getElementById("editChip30");
@@ -79,6 +86,8 @@
     const editCustomPointsInput = document.getElementById("editCustomPointsInput");
     const editTicketPriceTypeSelect = document.getElementById("editTicketPriceTypeSelect");
     const editAutoPriceOption = document.getElementById("editAutoPriceOption");
+    const editAdultPriceOption = document.getElementById("editAdultPriceOption");
+    const editTuesdayPriceOption = document.getElementById("editTuesdayPriceOption");
     const editAutoPriceHint = document.getElementById("editAutoPriceHint");
     const editAutoPriceHintText = document.getElementById("editAutoPriceHintText");
     const editItemCustomPriceWrap = document.getElementById("editItemCustomPriceWrap");
@@ -110,6 +119,8 @@
 
     const ticketPriceTypeSelect = document.getElementById("ticketPriceTypeSelect");
     const autoPriceOption = document.getElementById("autoPriceOption");
+    const adultPriceOption = document.getElementById("adultPriceOption");
+    const tuesdayPriceOption = document.getElementById("tuesdayPriceOption");
     const autoPriceHint = document.getElementById("autoPriceHint");
     const autoPriceHintText = document.getElementById("autoPriceHintText");
     const itemCustomPriceWrap = document.getElementById("itemCustomPriceWrap");
@@ -119,7 +130,11 @@
     const toggleOnlineFee = document.getElementById("toggleOnlineFee");
 
     const watchDateTime = document.getElementById("watchDateTime");
+    const watchTime = document.getElementById("watchTime");
     const purchaseDateTime = document.getElementById("purchaseDateTime");
+    const purchaseTime = document.getElementById("purchaseTime");
+    const purchaseTimeWrap = document.getElementById("purchaseTimeWrap");
+    const watchTimeWrap = document.getElementById("watchTimeWrap");
     const watchDateGroup = document.getElementById("watchDateGroup");
 
     const chip0 = document.getElementById("chip0");
@@ -167,6 +182,7 @@
 
     const toggleMovieName = document.getElementById("toggleMovieName");
     const toggleWatchDate = document.getElementById("toggleWatchDate");
+    const toggleTimeInput = document.getElementById("toggleTimeInput");
     const inputMemberExpiry = document.getElementById("inputMemberExpiry");
     const inputPassExpiry = document.getElementById("inputPassExpiry");
     const saveSettingsBtn = document.getElementById("saveSettingsBtn");
@@ -383,10 +399,20 @@
       try {
         const raw = localStorage.getItem(CONFIG.storageKey);
         if (!raw) return getDefaultState();
-        return { ...getDefaultState(), ...JSON.parse(raw) };
+        return normalizeState(JSON.parse(raw));
       } catch (e) {
         return getDefaultState();
       }
+    }
+
+    function normalizeState(savedState) {
+      const mergedState = { ...getDefaultState(), ...savedState };
+      // Preserve settings saved by older versions while replacing old price values with ticket categories.
+      if (mergedState.ticketBaseType === "95") mergedState.ticketBaseType = "adult";
+      if (mergedState.ticketBaseType === "75" || mergedState.ticketBaseType === "student") mergedState.ticketBaseType = "concession";
+      if (mergedState.ticketBaseType === "60") mergedState.ticketBaseType = "adult";
+      if (mergedState.passCategory === "1250" && mergedState.ticketBaseType === "adult") mergedState.ticketBaseType = "concession";
+      return mergedState;
     }
 
     function saveState() {
@@ -409,16 +435,48 @@
       return HK_PUBLIC_HOLIDAYS.has(dateStr);
     }
 
+    function isTuesdayDiscountDate(dateStr) {
+      if (!dateStr || isPublicHoliday(dateStr)) return false;
+      const [year, month, day] = dateStr.split("-").map(Number);
+      return new Date(year, month - 1, day).getDay() === 2;
+    }
+
     function isStudentUser() {
-      return state.ticketBaseType === "75" || state.passCategory === "1250";
+      return state.ticketBaseType === "concession" || (state.ticketBaseType === "adult" && state.passCategory === "1250");
     }
 
     function setDefaultDateTimes() {
       const now = new Date();
       const tzOffset = now.getTimezoneOffset() * 60000;
-      const localISOTime = (new Date(now - tzOffset)).toISOString().slice(0, 16);
-      purchaseDateTime.value = localISOTime;
-      watchDateTime.value = localISOTime;
+      const localISODate = (new Date(now - tzOffset)).toISOString().slice(0, 10);
+      purchaseDateTime.value = localISODate;
+      watchDateTime.value = localISODate;
+      purchaseTime.value = "";
+      watchTime.value = "";
+    }
+
+    function combineDateAndTime(dateValue, timeValue) {
+      if (!dateValue) return "";
+      return timeValue ? `${dateValue}T${timeValue}` : dateValue;
+    }
+
+    function setDateAndTimeInputs(dateInput, timeInput, value) {
+      const [datePart = "", timePart = ""] = (value || "").split("T");
+      dateInput.value = datePart;
+      timeInput.value = timePart.slice(0, 5);
+    }
+
+    function applyTimeInputPreference() {
+      const display = state.enableTimeInput ? "block" : "none";
+      [purchaseTimeWrap, watchTimeWrap, editPurchaseTimeWrap, editWatchTimeWrap].forEach((wrap) => {
+        if (wrap) wrap.style.display = display;
+      });
+    }
+
+    function isPurchaseAfterWatch(purchaseDate, purchaseTimeValue, watchDate, watchTimeValue) {
+      if (!purchaseDate || !watchDate) return false;
+      if (purchaseDate > watchDate) return true;
+      return purchaseDate === watchDate && !!purchaseTimeValue && !!watchTimeValue && purchaseTimeValue > watchTimeValue;
     }
 
     function formatDateTimeDisplay(dtStr) {
@@ -443,18 +501,6 @@
     }
 
     function determineTicketPrice(dateTimeStr) {
-      const isStudent = isStudentUser();
-
-      if (isStudent) {
-        return {
-          price: 75,
-          rawPrice: 75,
-          type: "student",
-          label: "學生票價 ($75)",
-          description: "學生優惠"
-        };
-      }
-
       let dateStr = getLocalDateString();
       let hour = 14;
       let dayOfWeek = 3;
@@ -471,6 +517,21 @@
         dayOfWeek = dt.getDay();
       }
 
+      const isNewPricePeriod = dateStr >= "2026-09-10";
+      const isHoliday = isPublicHoliday(dateStr);
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+      const isConcession = ["concession", "senior"].includes(state.ticketBaseType) || isStudentUser();
+
+      if (!isNewPricePeriod && isConcession) {
+        return {
+          price: 75,
+          rawPrice: 75,
+          type: "concession",
+          label: "學生／優惠票價 ($75)",
+          description: "舊票價：學生票價"
+        };
+      }
+
       if (hour < 13) {
         return {
           price: 60,
@@ -482,23 +543,32 @@
       }
 
       const isTuesday = (dayOfWeek === 2);
-      const isHoliday = isPublicHoliday(dateStr);
-
-      if (isTuesday && !isHoliday) {
+      if (isNewPricePeriod && isConcession) {
+        const price = (isWeekend || isHoliday) ? 80 : 75;
+        const categoryName = state.ticketBaseType === "senior" ? "長者" : "小童／學生";
         return {
-          price: 75,
-          rawPrice: 75,
-          type: "tuesday",
-          label: "星期二特惠 ($75)",
-          description: "星期二(公眾假期除外)"
+          price,
+          rawPrice: price,
+          type: "concession",
+          label: `${categoryName}票價 ($${price})`,
+          description: (isWeekend || isHoliday) ? "星期六、日或公眾假期優惠票價" : "星期一至五優惠票價"
         };
       }
 
-      let base = 95;
-      if (state.ticketBaseType === "custom") {
-        base = parseFloat(state.customTicketPrice) || 95;
+      if (isTuesday && !isHoliday) {
+        const price = isNewPricePeriod ? 80 : 75;
+        return {
+          price,
+          rawPrice: price,
+          type: "tuesday",
+          label: `星期二特惠 ($${price})`,
+          description: "公眾假期除外"
+        };
       }
 
+      const base = state.ticketBaseType === "custom"
+        ? (parseFloat(state.customTicketPrice) || 100)
+        : (isNewPricePeriod ? 100 : 95);
       let finalPrice = base;
       let discNote = "";
       if (state.enableMemberDiscount) {
@@ -506,8 +576,8 @@
         discNote = ` (8折 $${finalPrice.toFixed(0)})`;
       }
 
-      const labelName = state.ticketBaseType === "custom" 
-        ? `自訂預設 ($${base}${discNote})` 
+      const labelName = state.ticketBaseType === "custom"
+        ? `自訂成人票價 ($${base}${discNote})`
         : `成人正價 ($${base}${discNote})`;
 
       return {
@@ -515,27 +585,31 @@
         rawPrice: base,
         type: "adult",
         label: labelName,
-        description: isTuesday && isHoliday ? "星期二逢公眾假期，按正常票價處理" : "一般正價時段"
+        description: isTuesday && isHoliday ? "星期二逢公眾假期，按當日票價處理" : (isWeekend || isHoliday ? "星期六、日或公眾假期正價" : "星期一至五正價")
       };
     }
 
     function getTicketUnitPrice() {
-      let base = 95;
-      if (state.ticketBaseType === "75") base = 75;
-      else if (state.ticketBaseType === "60") base = 60;
-      else if (state.ticketBaseType === "custom") base = parseFloat(state.customTicketPrice) || 95;
+      let base = 100;
+      if (isStudentUser() || state.ticketBaseType === "senior") base = 75;
+      else if (state.ticketBaseType === "custom") base = parseFloat(state.customTicketPrice) || 100;
 
-      if (state.enableMemberDiscount && (state.ticketBaseType === "95" || state.ticketBaseType === "custom")) {
+      if (state.enableMemberDiscount && (state.ticketBaseType === "adult" || state.ticketBaseType === "custom")) {
         return base * 0.8;
       }
       return base;
     }
 
     function updateAddTicketPricePreview() {
-      const targetDateTime = (state.enableWatchDate && watchDateTime.value) ? watchDateTime.value : purchaseDateTime.value;
+      const targetDateTime = (state.enableWatchDate && watchDateTime.value)
+        ? combineDateAndTime(watchDateTime.value, state.enableTimeInput ? watchTime.value : "")
+        : combineDateAndTime(purchaseDateTime.value, state.enableTimeInput ? purchaseTime.value : "");
       const autoInfo = determineTicketPrice(targetDateTime);
 
       autoPriceOption.textContent = `⚡ 系統判定：${autoInfo.label}`;
+      const isNewPricePeriod = targetDateTime.slice(0, 10) >= "2026-09-10";
+      adultPriceOption.textContent = `成人正價 ($${isNewPricePeriod ? "100" : "95"}.00)`;
+      tuesdayPriceOption.textContent = `星期二特惠 ($${isNewPricePeriod ? "80" : "75"}.00，公眾假期除外)`;
       autoPriceHintText.textContent = `系統判定：${autoInfo.label} [${autoInfo.description}]`;
 
       const mode = ticketPriceTypeSelect.value;
@@ -564,10 +638,15 @@
     }
 
     function updateEditTicketPricePreview() {
-      const targetDateTime = (state.enableWatchDate && editWatchDateTime.value) ? editWatchDateTime.value : editPurchaseDateTime.value;
+      const targetDateTime = (state.enableWatchDate && editWatchDateTime.value)
+        ? combineDateAndTime(editWatchDateTime.value, editWatchTime.value)
+        : combineDateAndTime(editPurchaseDateTime.value, editPurchaseTime.value);
       const autoInfo = determineTicketPrice(targetDateTime);
 
       editAutoPriceOption.textContent = `⚡ 系統判定：${autoInfo.label}`;
+      const isNewPricePeriod = targetDateTime.slice(0, 10) >= "2026-09-10";
+      editAdultPriceOption.textContent = `成人正價 ($${isNewPricePeriod ? "100" : "95"}.00)`;
+      editTuesdayPriceOption.textContent = `星期二特惠 ($${isNewPricePeriod ? "80" : "75"}.00，公眾假期除外)`;
       editAutoPriceHintText.textContent = `系統判定：${autoInfo.label} [${autoInfo.description}]`;
 
       const mode = editTicketPriceTypeSelect.value;
@@ -601,9 +680,10 @@
       editMovieName.required = state.enableMovieName;
       editMovieNameGroup.style.display = state.enableMovieName ? "block" : "none";
 
-      editPurchaseDateTime.value = ticket.purchaseTime || "";
-      editWatchDateTime.value = ticket.watchTime || "";
+      setDateAndTimeInputs(editPurchaseDateTime, editPurchaseTime, ticket.purchaseTime || "");
+      setDateAndTimeInputs(editWatchDateTime, editWatchTime, ticket.watchTime || "");
       editWatchDateGroup.style.display = state.enableWatchDate ? "block" : "none";
+      applyTimeInputPreference();
       editToggleOnlineFee.checked = !!ticket.hasOnlineFee;
 
       const pts = ticket.points || 0;
@@ -638,6 +718,7 @@
       if (toggleMemberDiscount.checked !== state.enableMemberDiscount) return true;
       if (toggleMovieName.checked !== state.enableMovieName) return true;
       if (toggleWatchDate.checked !== state.enableWatchDate) return true;
+      if (toggleTimeInput.checked !== state.enableTimeInput) return true;
       if (inputMemberExpiry.value !== state.memberExpiry) return true;
       if (inputPassExpiry.value !== state.passExpiry) return true;
       return false;
@@ -658,6 +739,8 @@
 
       toggleMovieName.checked = state.enableMovieName;
       toggleWatchDate.checked = state.enableWatchDate;
+      toggleTimeInput.checked = state.enableTimeInput;
+      applyTimeInputPreference();
       inputMemberExpiry.value = state.memberExpiry;
       inputPassExpiry.value = state.passExpiry;
     }
@@ -879,6 +962,7 @@
 
     function bindEvents() {
       closeModalBtn.addEventListener("click", () => {
+        isFirstUseImport = false;
         state.hasSeenNotice = true;
         saveState();
         noticeModal.classList.add("hidden");
@@ -963,7 +1047,9 @@
 
       editTicketPriceTypeSelect.addEventListener("change", updateEditTicketPricePreview);
       editPurchaseDateTime.addEventListener("input", updateEditTicketPricePreview);
+      editPurchaseTime.addEventListener("input", updateEditTicketPricePreview);
       editWatchDateTime.addEventListener("input", updateEditTicketPricePreview);
+      editWatchTime.addEventListener("input", updateEditTicketPricePreview);
 
       themeSelect.addEventListener("change", () => {
         applyTheme(themeSelect.value);
@@ -972,7 +1058,7 @@
       passCategorySelect.addEventListener("change", () => {
         customPassPriceWrap.style.display = passCategorySelect.value === "custom" ? "block" : "none";
         if (passCategorySelect.value === "1250") {
-          ticketBaseSelect.value = "75";
+          ticketBaseSelect.value = "concession";
           customTicketPriceWrap.style.display = "none";
         }
       });
@@ -983,7 +1069,9 @@
 
       ticketPriceTypeSelect.addEventListener("change", updateAddTicketPricePreview);
       purchaseDateTime.addEventListener("input", updateAddTicketPricePreview);
+      purchaseTime.addEventListener("input", updateAddTicketPricePreview);
       watchDateTime.addEventListener("input", updateAddTicketPricePreview);
+      watchTime.addEventListener("input", updateAddTicketPricePreview);
       itemCustomPriceInput.addEventListener("input", updateCustomDiscountPreview);
 
       /* 新增戲飛表單提交 */
@@ -997,7 +1085,7 @@
         }
 
         if (!purchaseDateTime.value) {
-          alert("請選擇購買日期與時間！");
+          alert("請選擇購買日期！");
           return;
         }
 
@@ -1014,7 +1102,16 @@
         else if (currentPointMode === "30") pointsVal = 30;
         else pointsVal = parseInt(customPointsInput.value, 10) || 0;
 
-        const targetDateTime = (state.enableWatchDate && watchDateTime.value) ? watchDateTime.value : purchaseDateTime.value;
+        const recordedPurchaseTime = combineDateAndTime(purchaseDateTime.value, state.enableTimeInput ? purchaseTime.value : "");
+        const recordedWatchTime = state.enableWatchDate
+          ? combineDateAndTime(watchDateTime.value, state.enableTimeInput ? watchTime.value : "")
+          : "";
+        if (isPurchaseAfterWatch(purchaseDateTime.value, state.enableTimeInput ? purchaseTime.value : "", watchDateTime.value, state.enableTimeInput ? watchTime.value : "") && state.enableWatchDate) {
+          alert("購買日期和時間不可遲於觀看日期和時間。");
+          return;
+        }
+
+        const targetDateTime = (state.enableWatchDate && watchDateTime.value) ? recordedWatchTime : recordedPurchaseTime;
         const autoResult = determineTicketPrice(targetDateTime);
 
         let finalTicketPrice = autoResult.price;
@@ -1027,10 +1124,17 @@
           finalTicketPrice = state.enableMemberDiscount ? (rawCustom * 0.8) : rawCustom;
         } else if (selectMode === "60") {
           finalTicketPrice = 60;
-        } else if (selectMode === "75_tue" || selectMode === "75_stu") {
-          finalTicketPrice = 75;
-        } else if (selectMode === "95") {
-          finalTicketPrice = state.enableMemberDiscount ? 76 : 95;
+        } else if (selectMode === "tuesday") {
+          const targetDate = targetDateTime.slice(0, 10);
+          if (!isTuesdayDiscountDate(targetDate)) {
+            alert("星期二特惠只適用於非公眾假期的星期二。");
+            return;
+          }
+          finalTicketPrice = targetDate >= "2026-09-10" ? 80 : 75;
+        } else if (selectMode === "adult") {
+          const targetDate = targetDateTime.slice(0, 10);
+          const adultPrice = targetDate >= "2026-09-10" ? 100 : 95;
+          finalTicketPrice = state.enableMemberDiscount ? adultPrice * 0.8 : adultPrice;
         }
 
         const hasFee = toggleOnlineFee.checked;
@@ -1042,8 +1146,8 @@
           price: netPrice,
           rawPrice: finalTicketPrice,
           hasOnlineFee: hasFee,
-          purchaseTime: purchaseDateTime.value,
-          watchTime: state.enableWatchDate ? watchDateTime.value : null,
+          purchaseTime: recordedPurchaseTime,
+          watchTime: state.enableWatchDate && watchDateTime.value ? recordedWatchTime : null,
           points: pointsVal
         });
 
@@ -1073,12 +1177,26 @@
           return;
         }
 
+        if (!editPurchaseDateTime.value) {
+          alert("請選擇購買日期！");
+          return;
+        }
+
         let pointsVal = 0;
         if (editPointMode === "0") pointsVal = 0;
         else if (editPointMode === "30") pointsVal = 30;
         else pointsVal = parseInt(editCustomPointsInput.value, 10) || 0;
 
-        const targetDateTime = (state.enableWatchDate && editWatchDateTime.value) ? editWatchDateTime.value : editPurchaseDateTime.value;
+        const recordedPurchaseTime = combineDateAndTime(editPurchaseDateTime.value, editPurchaseTime.value);
+        const recordedWatchTime = state.enableWatchDate
+          ? combineDateAndTime(editWatchDateTime.value, editWatchTime.value)
+          : "";
+        if (state.enableWatchDate && isPurchaseAfterWatch(editPurchaseDateTime.value, editPurchaseTime.value, editWatchDateTime.value, editWatchTime.value)) {
+          alert("購買日期和時間不可遲於觀看日期和時間。");
+          return;
+        }
+
+        const targetDateTime = (state.enableWatchDate && editWatchDateTime.value) ? recordedWatchTime : recordedPurchaseTime;
         const autoResult = determineTicketPrice(targetDateTime);
 
         let finalTicketPrice = autoResult.price;
@@ -1091,10 +1209,17 @@
           finalTicketPrice = state.enableMemberDiscount ? (rawCustom * 0.8) : rawCustom;
         } else if (selectMode === "60") {
           finalTicketPrice = 60;
-        } else if (selectMode === "75_tue" || selectMode === "75_stu") {
-          finalTicketPrice = 75;
-        } else if (selectMode === "95") {
-          finalTicketPrice = state.enableMemberDiscount ? 76 : 95;
+        } else if (selectMode === "tuesday") {
+          const targetDate = targetDateTime.slice(0, 10);
+          if (!isTuesdayDiscountDate(targetDate)) {
+            alert("星期二特惠只適用於非公眾假期的星期二。");
+            return;
+          }
+          finalTicketPrice = targetDate >= "2026-09-10" ? 80 : 75;
+        } else if (selectMode === "adult") {
+          const targetDate = targetDateTime.slice(0, 10);
+          const adultPrice = targetDate >= "2026-09-10" ? 100 : 95;
+          finalTicketPrice = state.enableMemberDiscount ? adultPrice * 0.8 : adultPrice;
         }
 
         const hasFee = editToggleOnlineFee.checked;
@@ -1106,8 +1231,8 @@
           price: netPrice,
           rawPrice: finalTicketPrice,
           hasOnlineFee: hasFee,
-          purchaseTime: editPurchaseDateTime.value,
-          watchTime: state.enableWatchDate ? editWatchDateTime.value : null,
+          purchaseTime: recordedPurchaseTime,
+          watchTime: state.enableWatchDate && editWatchDateTime.value ? recordedWatchTime : null,
           points: pointsVal
         };
 
@@ -1129,6 +1254,7 @@
         state.enableMemberDiscount = toggleMemberDiscount.checked;
         state.enableMovieName = toggleMovieName.checked;
         state.enableWatchDate = toggleWatchDate.checked;
+        state.enableTimeInput = toggleTimeInput.checked;
         state.memberExpiry = inputMemberExpiry.value || "2027-04-30";
         state.passExpiry = inputPassExpiry.value || "2027-04-30";
 
@@ -1137,6 +1263,7 @@
 
         saveState();
         applyTheme(state.theme);
+        applyTimeInputPreference();
         updateAddTicketPricePreview();
         render();
 
@@ -1145,6 +1272,7 @@
           bottomNav.classList.remove("disabled");
           seasonDataMgmtCard.classList.remove("disabled-card");
           saveSettingsBtn.textContent = "儲存設定";
+          populateSettingsFormFromState();
           showToast("初始化設定已完成！", "success");
           switchView("view-home");
         } else {
@@ -1224,10 +1352,19 @@
         }
       });
 
-      importDataBtn.addEventListener("click", () => importFileInput.click());
+      firstUseImportBtn.addEventListener("click", () => {
+        isFirstUseImport = true;
+        importFileInput.click();
+      });
+      importDataBtn.addEventListener("click", () => {
+        isFirstUseImport = false;
+        importFileInput.click();
+      });
       importFileInput.addEventListener("change", (e) => {
         const file = e.target.files[0];
         if (!file) return;
+        const isFirstUseImportRequest = isFirstUseImport;
+        isFirstUseImport = false;
 
         const reader = new FileReader();
         reader.onload = (event) => {
@@ -1241,15 +1378,30 @@
               throw new Error("movies 欄位格式不正確");
             }
 
-            state = { ...getDefaultState(), ...importedState };
+            if (!isFirstUseImportRequest && !confirm("匯入會取代目前的觀影紀錄、封存資料及設定。要繼續嗎？")) {
+              importFileInput.value = "";
+              return;
+            }
+
+            state = normalizeState(importedState);
+            state.hasSeenNotice = true;
+            state.hasCompletedSetup = true;
             saveState();
             applyTheme(state.theme);
             populateSettingsFormFromState();
+            noticeModal.classList.add("hidden");
+            setupBanner.classList.add("hidden");
+            bottomNav.classList.remove("disabled");
+            seasonDataMgmtCard.classList.remove("disabled-card");
+            saveSettingsBtn.textContent = "儲存設定";
             updateAddTicketPricePreview();
             render();
+            switchView("view-home");
             showToast("備份資料已成功匯入！", "success");
+            importFileInput.value = "";
           } catch (err) {
             alert(`⚠️ 匯入失敗：${err.message || "檔案損壞或格式不相符"}`);
+            importFileInput.value = "";
           }
         };
         reader.readAsText(file);

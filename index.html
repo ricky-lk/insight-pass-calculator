@@ -43,7 +43,7 @@
           <svg class="icon icon-stroke" viewBox="0 0 24 24" width="22" height="22"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
           初次使用建議提示
         </h3>
-        <p style="font-size: 0.85rem; color: var(--text);">為確保有更良好的用戶體驗，建議按照以下步驟設定：</p>
+        <p style="font-size: 0.85rem; color: var(--text);">開始前可以先匯入備份，還原紀錄和設定；亦可直接開始設定。</p>
         
         <div class="onboard-step-list">
           <div class="onboard-step-item">
@@ -77,7 +77,10 @@
           </div>
         </div>
 
-        <button id="closeModalBtn" class="btn-primary" type="button">進入初始化設定</button>
+        <div class="onboard-actions">
+          <button id="firstUseImportBtn" class="btn-secondary" type="button">有備份？立即匯入</button>
+          <button id="closeModalBtn" class="btn-primary" type="button">開始設定</button>
+        </div>
       </div>
     </div>
 
@@ -101,13 +104,21 @@
           </div>
 
           <div class="form-group">
-            <label>購買日期與時間</label>
-            <input type="datetime-local" id="editPurchaseDateTime" required />
+            <label>購買日期</label>
+            <input type="date" id="editPurchaseDateTime" required />
+            <div class="optional-time-wrap" id="editPurchaseTimeWrap">
+              <label for="editPurchaseTime">購買時間（選填）</label>
+              <input type="time" id="editPurchaseTime" />
+            </div>
           </div>
 
           <div class="form-group" id="editWatchDateGroup">
-            <label>觀看日期與時間</label>
-            <input type="datetime-local" id="editWatchDateTime" />
+            <label>觀看日期</label>
+            <input type="date" id="editWatchDateTime" />
+            <div class="optional-time-wrap" id="editWatchTimeWrap">
+              <label for="editWatchTime">觀看時間（選填）</label>
+              <input type="time" id="editWatchTime" />
+            </div>
           </div>
 
           <div class="form-group">
@@ -125,11 +136,10 @@
           <div class="form-group">
             <label>戲飛票價</label>
             <select id="editTicketPriceTypeSelect">
-              <option value="auto" id="editAutoPriceOption">⚡ 自動判斷票價</option>
-              <option value="95">成人正價 ($95.00)</option>
+              <option value="auto" id="editAutoPriceOption">⚡ 自動判斷票價（依觀看日期）</option>
+              <option value="adult" id="editAdultPriceOption">成人正價 ($100.00)</option>
               <option value="60">早場優惠 ($60.00)</option>
-              <option value="75_tue">星期二特惠 ($75.00)</option>
-              <option value="75_stu">學生正價 ($75.00)</option>
+              <option value="tuesday" id="editTuesdayPriceOption">星期二特惠 ($80.00，公眾假期除外)</option>
               <option value="custom">自訂金額</option>
             </select>
 
@@ -316,17 +326,25 @@
           <div class="form-group">
             <label>
               <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg>
-              購買日期與時間
+              購買日期
             </label>
-            <input type="datetime-local" id="purchaseDateTime" required />
+            <input type="date" id="purchaseDateTime" required />
+            <div class="optional-time-wrap" id="purchaseTimeWrap">
+              <label for="purchaseTime">購買時間（選填）</label>
+              <input type="time" id="purchaseTime" />
+            </div>
           </div>
 
           <div class="form-group" id="watchDateGroup">
             <label>
               <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-              觀看日期與時間
+              觀看日期
             </label>
-            <input type="datetime-local" id="watchDateTime" />
+            <input type="date" id="watchDateTime" />
+            <div class="optional-time-wrap" id="watchTimeWrap">
+              <label for="watchTime">觀看時間（選填）</label>
+              <input type="time" id="watchTime" />
+            </div>
           </div>
 
           <div class="form-group">
@@ -350,11 +368,10 @@
               戲飛票價
             </label>
             <select id="ticketPriceTypeSelect">
-              <option value="auto" id="autoPriceOption">⚡ 自動判斷票價</option>
-              <option value="95">成人正價 ($95.00)</option>
+              <option value="auto" id="autoPriceOption">⚡ 自動判斷票價（依觀看日期）</option>
+              <option value="adult" id="adultPriceOption">成人正價 ($100.00)</option>
               <option value="60">早場優惠 ($60.00)</option>
-              <option value="75_tue">星期二特惠 ($75.00)</option>
-              <option value="75_stu">學生正價 ($75.00)</option>
+              <option value="tuesday" id="tuesdayPriceOption">星期二特惠 ($80.00，公眾假期除外)</option>
               <option value="custom">自訂金額</option>
             </select>
 
@@ -452,16 +469,17 @@
           </div>
 
           <div class="form-group">
-            <label>預設戲飛金額</label>
+            <label>預設票種</label>
             <select id="ticketBaseSelect">
-              <option value="95">$95.00 成人正價</option>
-              <option value="75">$75.00 學生正價 (學生身分)</option>
-              <option value="60">$60.00 早場優惠價</option>
+              <option value="adult">成人</option>
+              <option value="concession">小童／學生</option>
+              <option value="senior">長者</option>
               <option value="custom">自訂金額</option>
             </select>
             <div id="customTicketPriceWrap" style="display: none; margin-top: 6px;">
               <input type="number" id="customTicketPriceInput" placeholder="輸入單張戲飛金額 ($)" value="100" step="1" />
             </div>
+            <div class="field-hint">新票價由 2026-09-10 起生效：成人 $100；優惠票平日 $75、假日 $80；成人星期二 $80、早場 $60。更早場次按舊價計。</div>
           </div>
 
           <div class="form-group">
@@ -474,7 +492,7 @@
             </div>
             <div class="field-hint">
               <svg class="icon icon-stroke" viewBox="0 0 24 24" width="16" height="16" style="flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <span>開啟後，「成人正價 ($95)」及所有「自訂金額」均自動乘以 0.8 計算回收金額（例如 $95 算作 $76，$100 算作 $80）。學生票與早場優惠不重複折減。</span>
+              <span>開啟後，成人正價及所有「自訂金額」均乘以 0.8 計算回收金額（例如 $100 算作 $80）。小童、學生、長者及早場優惠不重複折減。</span>
             </div>
           </div>
 
@@ -494,6 +512,14 @@
                 <span class="slider"></span>
               </label>
             </div>
+            <div class="toggle-item">
+              <span style="font-size: 0.88rem; font-weight: 600;">顯示選填的購買／觀看時間</span>
+              <label class="switch">
+                <input type="checkbox" id="toggleTimeInput">
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="field-hint">購買日期必須填寫；時間可留空，也可在此關閉時間欄位。沒有觀看時間時，系統按一般場次估算票價；如需自動判斷早場，請填觀看時間。</div>
           </div>
 
           <div class="form-group">
@@ -552,12 +578,12 @@
       <div class="card">
         <div class="card-title">
           <span>版本與更新</span>
-          <span style="font-size: 0.78rem; font-weight: 700; color: var(--accent);" id="badgeVersionText">v1.0.5</span>
+          <span style="font-size: 0.78rem; font-weight: 700; color: var(--accent);" id="badgeVersionText">v1.0.6</span>
         </div>
         <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
           <div style="flex: 1;">
             <div style="font-size: 0.92rem; font-weight: 700; color: var(--text);">
-              目前版本：<span id="currentVersionDisplay">v1.0.5</span>
+              目前版本：<span id="currentVersionDisplay">v1.0.6</span>
             </div>
             <div id="updateStatusText" style="font-size: 0.78rem; color: var(--muted); margin-top: 4px;">
               開啟 App 時會自動檢查更新
@@ -581,7 +607,7 @@
           本工具資料只儲存於目前瀏覽器及裝置內，更換瀏覽器或清除 Cookie／網站資料後，資料可能會遺失，建議定期備份。
           <br><br>
           <strong>備份方法：</strong>
-          前往「設定」→「資料管理及重設」→「匯出資料 (JSON)」即可下載檔案。需要還原時，於同一頁選擇「匯入資料 (JSON)」並載入備份檔案即可。
+          「匯出資料 (JSON)」會一併保存觀影紀錄、封存資料及設定。還原時選擇「匯入資料 (JSON)」並載入備份檔案；匯入會取代目前的紀錄及設定。
         </span>
       </div>
 
@@ -697,9 +723,9 @@
           資料僅供參考，一切以官方最新公布為準。
         </p>
         <div class="meta-info">
-          <span>資料最後更新：2026/09/04</span>
+          <span>資料最後更新：2026/10/18</span>
           <span class="divider">·</span>
-          <span class="version">v1.0.5</span>
+          <span class="version">v1.0.6</span>
         </div>
         <div class="copyright">
           Made by <a href="https://ricky-lk.github.io/" target="_blank">Ricky-lk</a>
